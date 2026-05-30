@@ -22,6 +22,7 @@
     "prepublishOnly": "pnpm build"
   },
   "dependencies": {
+    "@inquirer/prompts": "^8.5.1",
     "better-sqlite3": "^11.10.0",
     "commander": "^13.1.0",
     "pino": "^9.6.0"

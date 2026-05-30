@@ -16,7 +16,7 @@ Claude Code JSONL at `~/.claude/projects/<project-id>/<session-id>.jsonl`.
 | `Stop` | Partial snapshot per turn (3s sync) |
 | `SessionEnd` | Final capture (detached) |
 
-**Git hooks** (`.git/hooks/`, via `jejak install`):
+**Git hooks** (`.git/hooks/`, via `jejak setup`):
 
 | Hook | Purpose |
 |---|---|
@@ -77,7 +77,7 @@ PII redaction is **best-effort** (6 block patterns + `.jejak/pii.yaml`). Not a g
 ## 6. CLI (v0.1)
 
 ```
-jejak init / install [--claude-code] [--force]
+jejak init [--agent <id>] / setup [--claude-code] [--force]
 jejak uninstall [--purge]              # remove hooks; optional ~/.jejak/<repo-hash>/ purge
 jejak active-session-id [--all-open]
 jejak attach <session-id> [--force]   # missed sessions; optional HEAD amend
@@ -87,7 +87,7 @@ jejak log / show / link <sha>          # link returns N sessions
 jejak status
 ```
 
-**Guards:** `jejak install` refuses self-install in the jejak dev repo. Any repo with `.jejak/disabled` makes hooks no-op. See DESIGN-LLD §9.1.
+**Guards:** `jejak init` / `jejak setup` refuse self-setup in the jejak dev repo. Any repo with `.jejak/disabled` makes hooks no-op. See DESIGN-LLD §9.1.
 
 **Deferred to v0.2+:** `jejak watch` (filesystem-watcher fallback), `jejak capture --session`, pre-turn diff, Cursor adapter, `Jejak-Attribution` trailer.
 

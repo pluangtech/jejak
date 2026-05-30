@@ -2,6 +2,8 @@
 
 | Document | Purpose |
 |---|---|
+| [CLI-SPEC.md](CLI-SPEC.md) | **CLI & UX spec** — verbs, onboarding (`init` / `setup`), user journeys |
+| [plans/INIT-IMPLEMENTATION-PLAN.md](plans/INIT-IMPLEMENTATION-PLAN.md) | **`jejak init` implementation plan** — workflows, LLD, example runs |
 | [IMPLEMENTATION-ORDER.md](IMPLEMENTATION-ORDER.md) | **Execution plan** — modus operandi, build order, test-project checklists |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | High-level architecture (synced with LLD) |
 | [DESIGN-LLD.md](DESIGN-LLD.md) | **Low-level design** (v0.4 — implementation-ready) |

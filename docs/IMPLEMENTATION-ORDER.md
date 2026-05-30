@@ -2,7 +2,7 @@
 
 Living doc. Update **Status**, **Results / notes**, and item order as we learn more.
 
-**Design source:** [DESIGN-LLD.md §4, §19](DESIGN-LLD.md) · [LESSONS-FROM-FINN.md §13](LESSONS-FROM-FINN.md)
+**Design source:** [DESIGN-LLD.md §4, §19](DESIGN-LLD.md) · [LESSONS-FROM-FINN.md §13](LESSONS-FROM-FINN.md) · **CLI UX:** [CLI-SPEC.md](CLI-SPEC.md)
 
 | Status | Meaning |
 |---|---|
@@ -51,7 +51,7 @@ Living doc. Update **Status**, **Results / notes**, and item order as we learn m
 
 ### 1. Verbs before internals
 
-After scaffold (item 1), **define every user-facing command** before writing feature logic. Install, init, daily use, push, update, doctor, uninstall — the spec drives what we build, not the other way around. Deliverable: **item 2 below** (same file — no separate doc).
+After scaffold (item 1), **define every user-facing command** before writing feature logic. Global `npm install`, then `init`, `setup`, daily use, push, update, doctor, uninstall — the spec drives what we build, not the other way around. Deliverable: **[CLI-SPEC.md](CLI-SPEC.md)** (item 2 tracks status here).
 
 ### 2. One item at a time
 
@@ -102,7 +102,7 @@ Future sessions: read this section + current item status. Do not re-derive proce
 - **Verbs-first ordering** forces user-facing thinking before infra
 - **Test-project gate** ("no smoking") prevents vitest-green-but-broken-IRL
 - **"Never repeat this briefing"** anti-context-rot guard for long-running dev
-- **Per-item *Verbs touched*** field cleanly threads item 2's spec through items 3–6
+- **Per-item *Verbs touched*** field cleanly threads [CLI-SPEC.md](CLI-SPEC.md) through items 3–6
 
 ### Critical — resolved in this revision
 
@@ -152,11 +152,11 @@ Decisions and external setup that must happen before item 1. No code touched; th
 
 ### No self-capture invariant
 
-**Jejak hooks are never installed in the jejak repo itself.** All capture happens in the test project (`~/Documents/projects/jejak-testproj/`). This is enforced three ways:
+**Jejak hooks are never configured in the jejak repo itself.** All capture happens in the test project (`~/Documents/projects/jejak-testproj/`). This is enforced three ways:
 
-1. **Process (here):** never run `jejak install --claude-code` from inside the jejak repo. Item 1 and onward must NOT add `.claude/settings.json` referencing jejak hooks to the jejak repo.
-2. **Code safeguard (item 5):** `jejak install` MUST refuse if the current repo's `package.json` name matches the jejak package name. Hard failure with an explanation pointing back to the test project.
-3. **Escape hatch (item 5):** any repo with `.jejak/disabled` (empty marker file) makes hooks no-op even if installed. Recovery path for accidental installs.
+1. **Process (here):** never run `jejak init` / `jejak setup` from inside the jejak repo. Item 1 and onward must NOT add `.claude/settings.json` referencing jejak hooks to the jejak repo.
+2. **Code safeguard (item 5):** `jejak setup` MUST refuse if the current repo's `package.json` name matches the jejak package name. Hard failure with an explanation pointing back to the test project.
+3. **Escape hatch (item 5):** any repo with `.jejak/disabled` (empty marker file) makes hooks no-op even if configured. Recovery path for accidental setup.
 
 If you ever see `.jejak/` or `.claude/settings.json` containing jejak entries appear in the jejak repo's working tree, stop and investigate.
 
@@ -247,7 +247,7 @@ jejak/
 │       ├── strip.ts              ← item 3
 │       └── write_fixture.ts      ← item 4
 ├── adapters/claude-code/
-│   ├── settings.json.template    ← `{{JEJAK_CLI}}` placeholder; install resolves to `jejak` on PATH
+│   ├── settings.json.template    ← `{{JEJAK_CLI}}` placeholder; setup resolves to `jejak` on PATH
 │   └── git-hooks/prepare-commit-msg   (3-line bash → exec node … _hook prepare-commit-msg)
 └── tests/
     ├── fixtures/{sessions,golden}/
@@ -266,7 +266,7 @@ export function upsertSessionBlobs(/* args */): string {
 
 #### Hook wiring (locked)
 
-`jejak install --claude-code` resolves the running CLI path (`which jejak` or `process.execPath`) and substitutes `{{JEJAK_CLI}}` in `settings.json.template`. Agent hooks invoke:
+`jejak setup --claude-code` resolves the running CLI path (`which jejak` or `process.execPath`) and substitutes `{{JEJAK_CLI}}` in `settings.json.template` (not `jejak install`). Agent hooks invoke:
 
 ```json
 "command": "{{JEJAK_CLI}} _hook session-end"
@@ -282,7 +282,7 @@ Git hook `prepare-commit-msg` is a 3-line bash script that `exec`s the same reso
 | `Stop` | `stop` |
 | `SessionEnd` | `session-end` |
 
-`settings.json.template` registers all three; `jejak install --claude-code` substitutes `{{JEJAK_CLI}}` in each command string.
+`settings.json.template` registers all three; `jejak setup --claude-code` substitutes `{{JEJAK_CLI}}` in each command string.
 
 #### Explicitly *not* doing
 
@@ -301,74 +301,18 @@ After merge, items 3–6 each touch ~3–5 modules within this skeleton — neve
 
 ## 2. CLI verbs & user journeys (spec)
 
-**Status:** `pending`  
-**LLD:** README · ARCHITECTURE.md §6 · DESIGN-LLD §16  
+**Status:** `in_progress`  
+**Spec:** **[CLI-SPEC.md](CLI-SPEC.md)** — onboarding, verb index, per-verb specs, user journey  
+**Init LLD:** **[plans/INIT-IMPLEMENTATION-PLAN.md](plans/INIT-IMPLEMENTATION-PLAN.md)** — Phase A/B, diagrams, example runs  
+**LLD:** ARCHITECTURE.md §6 · DESIGN-LLD §16  
 **Depends on:** 1
 
-**Verbs first.** Before any feature code, flesh out the spec below. This section is the user-facing contract for items 3–6 — keep it here, not a separate file.
-
-### Verb index (fill in during item 2)
-
-| Verb | Item | Status | When / purpose |
-|---|---|---|---|
-| `npm install -g` / `jejak --version` | 1–2 | stub | Get jejak |
-| `jejak init` | 4 | stub | One-time repo setup |
-| `jejak install --claude-code` | 5 | stub | Wire hooks |
-| *(hooks — automatic)* | 5 | — | Capture on session end |
-| `jejak status` | 6 | stub | Local vs origin trace state |
-| `jejak active-session-id` | 5 | stub | Open session(s) |
-| `jejak log` / `show` / `link` | 6 | stub | Browse traces |
-| `jejak push` / `fetch` | 6 | stub | Share traces |
-| `jejak attach` | 6 | stub | Missed capture recovery |
-| `jejak doctor` / `--trace` | 6 | stub | Diagnostics |
-| `npm update -g` + `jejak install --force` | 2 | spec | Update jejak + refresh hooks |
-| `jejak uninstall` | 6 | stub | Remove hooks + optional `~/.jejak/<repo-hash>/` purge; shadow ref untouched |
-
-Per verb, add a subsection under **Verb specs** with: syntax, flags, exit codes, depends-on, preconditions, success/failure output, test-project steps.
-
-### Verb spec template
-
-```
-### `jejak <verb>`
-Item N · stub|spec|shipped
-When: …
-Depends on: …          ← e.g. jejak init, PII initialized, git repo
-Syntax: jejak <verb> [flags] [args]
-Preconditions: …
-Success / failure / exit codes: …
-Test project: 1. … 2. …
-```
-
-### Test project
-
-**Path:** `~/Documents/projects/jejak-testproj/` (created in item 0 — do not recreate unless reset)
-
-**Setup:** `pnpm link --global` from jejak clone → `cd ~/Documents/projects/jejak-testproj` → extend per item.
-
-### User journey: first trace end-to-end
-
-*(Item 2 deliverable — install → capture → commit → push → fetch → show/link)*
-
-```text
-# TBD
-```
-
-### Verb specs
-
-*(One subsection per verb — fill in during item 2)*
-
-#### Update workflow (IM-3 — draft spec)
-
-**When:** After `npm update -g jejak` (or `pnpm update -g jejak`).
-
-**Depends on:** jejak previously installed in target repo.
-
-**Behavior:** Hook scripts embed the resolved CLI path at install time. After upgrade, re-run `jejak install --claude-code --force` to refresh agent + git hooks. Full `jejak doctor` (item 6) flags stale hook scripts when embedded version ≠ running `--version`.
+Edit verb details in **CLI-SPEC.md** only. This item tracks completion and test-project verification.
 
 **Done when:**
-- [ ] Verb index complete; every v0.1 verb has a spec subsection
-- [ ] User journey written (see above)
-- [ ] Update workflow spec finalized (see above)
+- [ ] [CLI-SPEC.md](CLI-SPEC.md) verb index complete; every v0.1 verb has a spec subsection
+- [ ] [CLI-SPEC.md](CLI-SPEC.md) user journey written (Steps 0–3+)
+- [ ] [CLI-SPEC.md](CLI-SPEC.md) update workflow spec finalized
 - [ ] Verb-coverage sentinel: CI script diffs **public** `jejak --help` subcommands vs `scripts/expected-verbs.json` — zero mismatches. Excludes hidden `_hook` / `_dev` and non-CLI steps (`npm install -g`). Index rows like `log / show / link` expand to three entries in the manifest.
 - [ ] Reviewed and approved by user
 
@@ -379,7 +323,9 @@ Test project: 1. … 2. …
 4. Verb-coverage script passes (index ↔ `--help` bijection)
 
 **Results / notes:**
+- Spec doc: [CLI-SPEC.md](CLI-SPEC.md)
 - Test project path: `~/Documents/projects/jejak-testproj/`
+- `init` + `setup` specs drafted; remaining verbs stubbed in CLI-SPEC
 
 ---
 
@@ -414,18 +360,20 @@ Raw Claude Code JSONL → stripped events. Golden-file tests lock the format bef
 
 ## 4. Shadow storage & init
 
-**Status:** `pending`  
+**Status:** `in progress` — Phase A (init) shipped; Phase B (upsert) pending item 3  
+**Plan:** [plans/INIT-IMPLEMENTATION-PLAN-v2.md](plans/INIT-IMPLEMENTATION-PLAN-v2.md) (pattern-based, hybrid distribution) — supersedes the original plan. **Phase A** (init) is done; **Phase B** (upsert/round-trip) needs item 3  
 **LLD:** §10 shadow write · §11 layout · build steps S2, S3  
-**Depends on:** 3  
+**Depends on:** 3 (Phase B); 2 sign-off (Phase A)  
 **Verbs touched:** `jejak init`
 
 Write stripped sessions to `refs/heads/jejak/sessions/v1` without touching the working tree.
 
 **Done when:**
-- [ ] `src/shadow_branch.ts` — `sessionPath()`, upsert, CAS/flock
-- [ ] `jejak init` creates shadow ref + `.gitattributes`
-- [ ] Round-trip test: write session → read back from ref
-- [ ] Test project checklist below passes
+- [x] `src/git/GitClient.ts` (facade) + `src/shadow/ShadowRepository.ts` — idempotent `ensure()` (orphan ref + seed tree + CAS + `merge.ours.driver`)
+- [x] `jejak init` creates the shadow ref + seed-tree `.gitattributes`, writes committed `.jejak/config.json` `{v, agent, mode}`, resolves dev_handle, hybrid project/global mode
+- [x] Unit + integration tests green (47 tests; real-git integration for ref creation, seed tree, idempotency, exit codes)
+- [ ] **(Phase B)** `ShadowRepository.upsert()` / `sessionPath()` + round-trip test: write session → read back from ref
+- [ ] **(Phase B)** Test project checklist below passes (step 4 needs item 3)
 
 **Test project checklist:**
 1. In test project: `jejak init`
@@ -446,7 +394,7 @@ Write stripped sessions to `refs/heads/jejak/sessions/v1` without touching the w
 **Status:** `pending`  
 **LLD:** §5 lifecycle · §6 worker · §14 ledger · build steps S3b, S4  
 **Depends on:** 4  
-**Verbs touched:** `jejak install --claude-code`, `jejak active-session-id`, automatic capture
+**Verbs touched:** `jejak setup --claude-code`, `jejak active-session-id`, automatic capture
 
 End-to-end capture: session start → partial snapshots → session end → shadow write. Git hook stamps trailers (inert until ledger has open sessions).
 
@@ -455,16 +403,16 @@ End-to-end capture: session start → partial snapshots → session end → shad
 - [ ] Agent hooks + `snapshot_worker` with flag-and-rerun coalescing
 - [ ] Local staging at `~/.jejak/staging/` before shared write
 - [ ] `prepare-commit-msg` appends `Jejak-Session:` trailers (exit 0 always)
-- [ ] `jejak install --claude-code` wires hooks
-- [ ] **Self-install refusal:** `jejak install` exits non-zero with a clear message if `package.json` name matches the jejak package name (prevents jejak-on-jejak capture). Override flag `--i-know-what-im-doing` exists for jejak's own development edge cases but never documented in public help.
+- [ ] `jejak setup --claude-code` wires hooks — **mode-aware** invocation: portable `npx jejak` in project mode (committable), resolved absolute path in global mode (per-machine). **Never clobber** existing `.claude/settings.json` hooks: detect → merge additively → stop and guide on conflict (`init` already reports pre-existing hooks)
+- [ ] **Self-setup refusal:** `jejak init` / `jejak setup` exit non-zero in the jejak package repo. Override `--i-know-what-im-doing` undocumented.
 - [ ] **`.jejak/disabled` escape hatch:** every hook (agent and git) checks for `.jejak/disabled` at repo root before doing any work; exits 0 silently if present. Documented in README as the per-repo opt-out.
-- [ ] **Minimal `jejak doctor`** (install-checks only): agent hook in `.claude/settings.json`, git hook in `.git/hooks/`, ledger DB exists, no orphan locks, `.jejak/disabled` presence reported. Full doctor (sync, dispatch errors, PII gate, trace) lands in item 6.
+- [ ] **Minimal `jejak doctor`** (setup-checks only): agent hook in `.claude/settings.json`, git hook in `.git/hooks/`, ledger DB exists, no orphan locks, `.jejak/disabled` presence reported. Full doctor (sync, dispatch errors, PII gate, trace) lands in item 6.
 - [ ] Test project checklist below passes
 
 **Test project checklist:**
-1. From inside the **jejak repo itself**: `jejak install --claude-code` → exits non-zero with "refusing to install in jejak repo" message
-2. `cd ~/Documents/projects/jejak-testproj && jejak install --claude-code` → succeeds
-3. `jejak doctor` (minimal) reports all install checks pass; `.jejak/disabled` reported as absent
+1. From inside the **jejak repo itself**: `jejak setup --claude-code` → exits non-zero with self-setup refusal message
+2. `cd ~/Documents/projects/jejak-testproj && jejak init` then `jejak setup --claude-code` → succeeds
+3. `jejak doctor` (minimal) reports all setup checks pass; `.jejak/disabled` reported as absent
 4. `touch .jejak/disabled && jejak doctor` → reports `disabled=true`; trigger a fake hook → no work done; `rm .jejak/disabled` re-enables
 5. Run a real Claude Code session (or simulate hook with fixture JSON on stdin)
 6. `jejak active-session-id` returns session ID while open
@@ -492,11 +440,11 @@ Make traces safe to share and usable from the CLI. Every remaining v0.1 verb fro
 - [ ] `jejak push` / `fetch` with merge
 - [ ] **Full `jejak doctor` + `doctor --trace`** (extends minimal doctor from item 5): shadow sync ahead/behind, dispatch error count, PII-ready gate, filesystem warnings, watcher conflict, staging orphans, hook-latency p50/p95/p99
 - [ ] `jejak show`, `log`, `link`, `active-session-id`, `attach`, `status`
-- [ ] `jejak uninstall` — removes agent + git hook entries from `.claude/settings.json` and `.git/hooks/`; `--purge` flag also removes `~/.jejak/<repo-hash>/`; shadow ref untouched; re-`install` cleanly restores
-- [ ] Full test-project run of item 2 **User journey** passes
+- [ ] `jejak uninstall` — removes agent + git hook entries from `.claude/settings.json` and `.git/hooks/`; `--purge` flag also removes `~/.jejak/<repo-hash>/`; shadow ref untouched; re-`setup` cleanly restores
+- [ ] Full test-project run of [CLI-SPEC.md user journey](CLI-SPEC.md#user-journey-first-trace-end-to-end) passes
 
 **Test project checklist:**
-*(From item 2 user journey — install → capture → commit → push → fetch → show/link; optionally second clone as teammate)*
+*(From [CLI-SPEC.md](CLI-SPEC.md) user journey — capture → commit → push → fetch → show/link; optionally second clone as teammate)*
 
 **Results / notes:**
 - 

@@ -110,8 +110,10 @@ All ✅ — see [REVIEW-LLD.md Part 1](REVIEW-LLD.md).
 | Push primitive | Plain `git push` + retry loop | Shared ref; not `--force-with-lease` |
 | Hook tiers | **Agent hooks** + **git hooks** | Entire model (Δ-1, Δ-2 prep) |
 | PII framing | **Best-effort**, not guarantee | Entire security docs; paired with staging + `.jejakignore` |
-| dev-handle | Config → git config → email local-part → fail | Sanitized: `[+/\\:@]` → `-`, lowercase, max 64 chars (AI-9) |
+| dev-handle | `git config jejak.handle` (repo→global) → `user.name` (slugified) → email local-part → fail | Resolved **per-developer at runtime** (never stored in committed config). Human-readable preferred (`"Aditya Jha"` → `aditya-jha`); email local-part is the collision-resistant fallback. Sanitized: whitespace + `[+/\\:@]` → `-`, lowercase, strip edge `-`, max 64 chars (AI-9). See [INIT-IMPLEMENTATION-PLAN-v2](plans/INIT-IMPLEMENTATION-PLAN-v2.md). |
 | Session ID | Prefer `YYYY-MM-DD-<uuid>` when agent provides | Natural sort (AI-7) |
+| Distribution | **Hybrid:** project devDependency (preferred, Node repos) + global install (fallback, any repo) | Project mode = teammates `npm install` with no per-dev init/setup; global mode covers polyglot repos. Mode chosen at `jejak init`. See [INIT-IMPLEMENTATION-PLAN-v2](plans/INIT-IMPLEMENTATION-PLAN-v2.md). |
+| Repo config | **Committed** `.jejak/config.json` = `{v, agent, mode}`; per-dev state stays local (`~/.jejak/<repo-hash>/`, git config) | Shared decisions decided once and version-controlled; `dev_handle` stays per-dev (resolved lazily). **Supersedes** the earlier "config is local-only" choice. |
 
 ---
 
@@ -177,7 +179,7 @@ flowchart TB
 | `src/logger.ts` | pino wrapper → `~/.jejak/dispatch/<repo-hash>.log` |
 | `src/types.ts` | Shared interfaces (`StrippedEvent`, `SessionMeta`, `HookPayload`) |
 | `adapters/claude-code/git-hooks/prepare-commit-msg` | 3-line bash → `exec "{{JEJAK_CLI}}" _hook prepare-commit-msg "$@"` |
-| `adapters/claude-code/settings.json.template` | Hook block merged into user's `.claude/settings.json` by `jejak install`; `{{JEJAK_CLI}}` → resolved `jejak` path |
+| `adapters/claude-code/settings.json.template` | Hook block merged into user's `.claude/settings.json` by `jejak setup`; `{{JEJAK_CLI}}` → resolved `jejak` path |
 
 ---
 
@@ -217,15 +219,15 @@ Unchanged from v0.2 (C-4). See prior sequence diagram in git history.
 | `Stop` | sync bounded | 3s | Partial snapshot per turn |
 | `SessionEnd` | detached | 15s | Final capture |
 
-#### Git hooks (`.git/hooks/` via `jejak install`)
+#### Git hooks (`.git/hooks/` via `jejak setup`)
 
 | Hook | Purpose |
 |---|---|
 | `prepare-commit-msg` | Append `Jejak-Session:` trailer(s) for all open sessions in this repo (V3-1) |
 
-Installed by `jejak init` / `jejak install`. Removed by `jejak uninstall`.
+Installed by `jejak setup` (after `jejak init`). Removed by `jejak uninstall`.
 
-**Hook command shape (locked).** `jejak install --claude-code` resolves the running CLI (`which jejak` or `process.execPath`) and substitutes `{{JEJAK_CLI}}` in `settings.json.template`. Agent hooks use kebab-case `_hook` arguments mapped from Claude Code events:
+**Hook command shape (locked).** `jejak setup --claude-code` resolves the running CLI (`which jejak` or `process.execPath`) and substitutes `{{JEJAK_CLI}}` in `settings.json.template`. Agent hooks use kebab-case `_hook` arguments mapped from Claude Code events:
 
 | Claude Code event | Command |
 |---|---|
@@ -297,13 +299,13 @@ Thinking blocks: **verbatim default**, cap 4 KB per block, `--strip-thinking` to
 
 Two related guards keep jejak from capturing itself or any repo that opts out:
 
-**Self-install refusal.** `jejak install` reads `package.json` at the repo root. If `name` matches the jejak package name (the running binary's own package name, resolved at install time), `install` exits non-zero with:
+**Self-setup refusal.** `jejak init` and `jejak setup` read `package.json` at the repo root. If `name` matches the jejak package name (the running binary's own package name, resolved at install time), `install` exits non-zero with:
 
 ```
-jejak: refusing to install hooks in the jejak repo itself.
+jejak: refusing to configure hooks in the jejak repo itself.
 This would cause jejak to capture its own development sessions and pollute
 the shadow ref with self-referential traces. Use a separate test project
-(see [IMPLEMENTATION-ORDER.md](IMPLEMENTATION-ORDER.md) §Test project). Override: --i-know-what-im-doing (undocumented).
+(see [CLI-SPEC.md](CLI-SPEC.md#test-project)). Override: --i-know-what-im-doing (undocumented).
 ```
 
 The override exists for jejak's own development edge cases (e.g., manually crafted hook tests) but never appears in `--help`.
@@ -581,7 +583,7 @@ All v0.2 checks, plus:
 - [ ] Staged content written locally before PII; shared write blocked if PII uninitialized
 - [ ] Hook duration logged for `doctor trace`
 - [ ] `jejak attach` works for missed sessions
-- [ ] `jejak install` refuses self-install (jejak repo); every hook checks `.jejak/disabled` first (§9.1)
+- [ ] `jejak init` / `jejak setup` refuse self-setup (jejak repo); every hook checks `.jejak/disabled` first (§9.1)
 
 ---
 

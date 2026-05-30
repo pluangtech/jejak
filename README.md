@@ -26,15 +26,19 @@ That's a problem when:
 ## Install (sketch)
 
 ```bash
-# global CLI (Node 20+ required)
+# Step 0 — install the CLI (Node 20+ required)
 npm install -g jejak
-# or: pnpm add -g jejak
+# Dev: pnpm build && pnpm link --global  (from jejak clone)
 
-# in your repo, one-time setup
+# Step 1 — add jejak to your repo
 cd my-repo
-jejak init                  # creates refs/heads/jejak/sessions/v1, shadow .gitattributes
-jejak install --claude-code # agent hooks + prepare-commit-msg git hook
+jejak init
+
+# Step 2 — configure Claude Code + git hooks
+jejak setup --claude-code
 ```
+
+Details: [docs/CLI-SPEC.md](docs/CLI-SPEC.md) · progress: [docs/IMPLEMENTATION-ORDER.md](docs/IMPLEMENTATION-ORDER.md)
 
 ## Use
 
@@ -62,7 +66,7 @@ touch .jejak/disabled
 
 Every hook (agent + git) checks for this file first and exits silently if present. Remove the file to re-enable. `.jejak/disabled` is typically gitignored so it stays a per-developer setting; commit it to enforce repo-wide.
 
-Note: jejak's own development repo refuses installation entirely (see `jejak install --help`).
+Note: jejak's own development repo refuses `init` / `setup` (see `jejak setup --help`).
 
 ## Roadmap
 
@@ -77,7 +81,7 @@ MIT — see [LICENSE](LICENSE).
 
 ## Testing
 
-Development uses a separate test repo at `~/Documents/projects/jejak-testproj/` (never install jejak hooks in the jejak repo itself). Process and checklists: [docs/IMPLEMENTATION-ORDER.md](docs/IMPLEMENTATION-ORDER.md).
+Development uses a separate test repo at `~/Documents/projects/jejak-testproj/` (never run `jejak setup` in the jejak repo itself). CLI spec: [docs/CLI-SPEC.md](docs/CLI-SPEC.md) · execution plan: [docs/IMPLEMENTATION-ORDER.md](docs/IMPLEMENTATION-ORDER.md).
 
 ## Docs
 
