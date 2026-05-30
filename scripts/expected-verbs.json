@@ -1,0 +1,16 @@
+{
+  "commands": [
+    "init",
+    "install",
+    "status",
+    "active-session-id",
+    "log",
+    "show",
+    "link",
+    "push",
+    "fetch",
+    "attach",
+    "doctor",
+    "uninstall"
+  ]
+}

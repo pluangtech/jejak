@@ -1,0 +1,40 @@
+{
+  "name": "jejak",
+  "version": "0.1.0-dev",
+  "description": "Capture the trail your AI coding agents leave behind",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "bin": {
+    "jejak": "./dist/cli.js"
+  },
+  "files": ["dist", "adapters"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check src tests scripts vitest.config.ts tsup.config.ts package.json",
+    "lint:fix": "biome check --write src tests scripts vitest.config.ts tsup.config.ts package.json",
+    "test": "vitest run",
+    "check:verbs": "vitest run tests/verb-coverage.test.ts",
+    "prepublishOnly": "pnpm build"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "commander": "^13.1.0",
+    "pino": "^9.6.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["@biomejs/biome", "better-sqlite3", "esbuild"]
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.15.21",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  }
+}

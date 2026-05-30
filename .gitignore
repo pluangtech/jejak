@@ -1,0 +1,8 @@
+node_modules/
+.pnpm-store/
+dist/
+.jejak/
+*.log
+.DS_Store
+coverage/
+.vitest/

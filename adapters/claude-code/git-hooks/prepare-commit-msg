@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Resolved at `jejak install --claude-code` time; {{JEJAK_CLI}} is substituted.
+exec "{{JEJAK_CLI}}" _hook prepare-commit-msg "$@"
