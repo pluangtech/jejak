@@ -9,7 +9,7 @@
       "sources": [
         "src/shadow/ShadowRepository.ts",
         "src/shadow/constants.ts",
-        "src/shadow_branch.ts"
+        "src/shadow/sessionPath.ts"
       ]
     }
   ]

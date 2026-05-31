@@ -143,7 +143,7 @@ flowchart TB
 
     subgraph Worker["snapshot_worker"]
         STRIP[Stripper + PII]
-        WRITER[shadow_branch.ts]
+        WRITER[shadow/ShadowRepository]
     end
 
     subgraph Git["Git"]
@@ -167,7 +167,7 @@ flowchart TB
 | Module / path | Responsibility |
 |---|---|
 | `src/cli.ts` | commander entry; `bin.jejak` target; dispatches subcommands |
-| `src/shadow_branch.ts` | Write (§10), merge (§12), CAS, flock, dedup, `sessionPath()` |
+| `src/shadow/` | `ShadowRepository` (ensure §6.2 + upsert §10), `sessionPath()`, `GitBlobPayloadSink`, CAS + tree-hash dedup |
 | `src/snapshot_worker.ts` | Pipeline orchestration; single-flight + rerun |
 | `src/capture_hook_utils.ts` | Agent hook spawn; hook timing for trace |
 | `src/commit_trailers.ts` | `prepare-commit-msg` logic (§10.5) |
@@ -344,7 +344,7 @@ Any repo can opt out without uninstalling. Marker file is a zero-byte file. `jej
 
 ### 10.1 Tree composition (C-1)
 
-Lift Finn's index pattern unchanged. **Only change:** path passed to `update-index`. **Implementation:** TypeScript in `src/shadow_branch.ts`; Finn reference below is Python for readability.
+Lift Finn's index pattern unchanged. **Only change:** path passed to `update-index`. **Implementation:** TypeScript in `src/shadow/ShadowRepository.ts` (`upsert()`), via the `GitClient` temp-index seam (`writeTreeFromIndex(entries, baseTree)` → parented `commit-tree` → CAS `update-ref`), with tree-hash dedup; Finn reference below is Python for readability.
 
 ```python
 # Finn reference (shadow_branch.py) — logic ports 1:1 to TS
@@ -611,7 +611,7 @@ All v0.2 checks, plus:
 ```mermaid
 flowchart TD
     S1["1. JSONL reader + stripper + golden tests"]
-    S2["2. shadow_branch.ts — write + sessionPath"]
+    S2["2. shadow/ShadowRepository — upsert + sessionPath"]
     S3["3. jejak init — shadow ref + .gitattributes"]
     S3b["3b. Git hooks — prepare-commit-msg + trailers"]
     S4["4. Agent hooks + worker + flag-and-rerun + staging"]

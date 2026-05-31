@@ -1,6 +1,13 @@
 import { Command } from "commander";
+import { devReadFixture } from "../dev/read_fixture.js";
 import { devStrip } from "../dev/strip.js";
+import { devWriteFixture } from "../dev/write_fixture.js";
 import { notImplemented } from "../stub.js";
+
+function failExit(e: unknown): never {
+  console.error(e instanceof Error ? e.message : String(e));
+  process.exit(1);
+}
 
 /** Register the hidden `_hook` and `_dev` command groups. */
 export function registerInternalCommands(program: Command): void {
@@ -40,11 +47,29 @@ export function registerInternalCommands(program: Command): void {
     );
   dev
     .command("write-fixture")
-    .description("Write a test fixture blob (item 4)")
-    .action(() => notImplemented(4, "§10"));
+    .description("Strip a raw transcript and write the session to the shadow ref (item 4)")
+    .argument("<raw-path>", "Path to a raw transcript")
+    .requiredOption("--session <id>", "Session id")
+    .requiredOption("--handle <handle>", "Dev handle")
+    .option("--agent <id>", "Agent (default claude-code)")
+    .action(async (rawPath: string, o: { session: string; handle: string; agent?: string }) => {
+      try {
+        await devWriteFixture({ rawPath, sessionId: o.session, handle: o.handle, agent: o.agent });
+      } catch (e) {
+        failExit(e);
+      }
+    });
   dev
     .command("read-fixture")
-    .description("Read a test fixture blob (item 4)")
-    .action(() => notImplemented(4, "§10"));
+    .description("Read a session's events back from the shadow ref (item 4)")
+    .requiredOption("--session <id>", "Session id")
+    .requiredOption("--handle <handle>", "Dev handle")
+    .action(async (o: { session: string; handle: string }) => {
+      try {
+        await devReadFixture({ sessionId: o.session, handle: o.handle });
+      } catch (e) {
+        failExit(e);
+      }
+    });
   program.addCommand(dev, { hidden: true });
 }

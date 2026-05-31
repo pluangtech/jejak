@@ -32,14 +32,20 @@ export class FakeGitClient implements GitClient {
   async refExists(ref: string): Promise<boolean> {
     return this.refs.has(ref);
   }
+  async resolveRef(ref: string): Promise<string | null> {
+    return this.refs.has(ref) ? "commit1" : null;
+  }
   async hashObject(): Promise<string> {
     this.blobCount += 1;
     return `blob${this.blobCount}`;
   }
-  async writeTreeFromIndex(_entries: TreeEntry[]): Promise<string> {
+  async catBlob(): Promise<Buffer> {
+    return Buffer.alloc(0);
+  }
+  async writeTreeFromIndex(_entries: TreeEntry[], _baseTree?: string): Promise<string> {
     return "tree1";
   }
-  async commitTree(tree: string, message: string): Promise<string> {
+  async commitTree(tree: string, message: string, _parents?: string[]): Promise<string> {
     this.commits.push({ tree, message });
     return "commit1";
   }

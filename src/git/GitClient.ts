@@ -23,12 +23,19 @@ export interface GitClient {
   repoRoot(): Promise<string>;
   /** True if `ref` resolves; never throws on a missing ref. */
   refExists(ref: string): Promise<boolean>;
-  /** Write `content` as a blob; returns its SHA. */
-  hashObject(content: string): Promise<string>;
-  /** Build a tree from `entries` using a throwaway index; returns the tree SHA. */
-  writeTreeFromIndex(entries: TreeEntry[]): Promise<string>;
-  /** Create an orphan commit (no parent) wrapping `tree`; returns the commit SHA. */
-  commitTree(tree: string, message: string): Promise<string>;
+  /** Resolve `ref` to a commit SHA, or null if it doesn't exist. */
+  resolveRef(ref: string): Promise<string | null>;
+  /** Write `content` (text or binary) as a blob; returns its git object SHA. */
+  hashObject(content: string | Buffer): Promise<string>;
+  /** Read a blob/object (binary-safe), e.g. `<commit>:<path>`. */
+  catBlob(spec: string): Promise<Buffer>;
+  /**
+   * Build a tree using a throwaway index. With `baseTree`, seed the index from it first
+   * (read-tree) so `entries` are added on top — the single tree-building seam for seed + upsert.
+   */
+  writeTreeFromIndex(entries: TreeEntry[], baseTree?: string): Promise<string>;
+  /** Create a commit wrapping `tree`. No parents → orphan root; otherwise parented. */
+  commitTree(tree: string, message: string, parents?: string[]): Promise<string>;
   /** Compare-and-swap a ref. `oldSha=""` means "must not already exist". Returns false on CAS miss. */
   updateRefCAS(ref: string, newSha: string, oldSha?: string): Promise<boolean>;
   /** Read a git config value, or null if unset. */
@@ -45,7 +52,7 @@ interface RunResult {
 
 function runGit(
   args: string[],
-  opts: { cwd: string; input?: string; env?: NodeJS.ProcessEnv },
+  opts: { cwd: string; input?: string | Buffer; env?: NodeJS.ProcessEnv },
 ): Promise<RunResult> {
   return new Promise((resolve, reject) => {
     const child = spawn("git", args, { cwd: opts.cwd, env: opts.env ?? process.env });
@@ -64,11 +71,36 @@ function runGit(
   });
 }
 
+/** Like {@link runGit} but collects stdout as raw bytes (for binary blobs). */
+function runGitBytes(
+  args: string[],
+  cwd: string,
+): Promise<{ stdout: Buffer; stderr: string; code: number }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn("git", args, { cwd });
+    const chunks: Buffer[] = [];
+    let stderr = "";
+    child.stdout.on("data", (d: Buffer) => chunks.push(d));
+    child.stderr.on("data", (d) => {
+      stderr += d.toString();
+    });
+    child.on("error", reject);
+    child.on("close", (code) =>
+      resolve({ stdout: Buffer.concat(chunks), stderr, code: code ?? 0 }),
+    );
+    child.stdin.end();
+  });
+}
+
 /** Real {@link GitClient} that shells out to `git`, rooted at a starting directory. */
 export class RealGitClient implements GitClient {
   constructor(private readonly cwd: string) {}
 
-  private async run(args: string[], input?: string, env?: NodeJS.ProcessEnv): Promise<string> {
+  private async run(
+    args: string[],
+    input?: string | Buffer,
+    env?: NodeJS.ProcessEnv,
+  ): Promise<string> {
     const r = await runGit(args, { cwd: this.cwd, input, env });
     if (r.code !== 0) {
       throw new GitError(
@@ -89,15 +121,33 @@ export class RealGitClient implements GitClient {
     return r.code === 0;
   }
 
-  async hashObject(content: string): Promise<string> {
+  async resolveRef(ref: string): Promise<string | null> {
+    const r = await runGit(["rev-parse", "--verify", "--quiet", ref], { cwd: this.cwd });
+    return r.code === 0 ? r.stdout.trim() : null;
+  }
+
+  async hashObject(content: string | Buffer): Promise<string> {
     return (await this.run(["hash-object", "-w", "--stdin"], content)).trim();
   }
 
-  async writeTreeFromIndex(entries: TreeEntry[]): Promise<string> {
+  async catBlob(spec: string): Promise<Buffer> {
+    const r = await runGitBytes(["cat-file", "-p", spec], this.cwd);
+    if (r.code !== 0) {
+      throw new GitError(`git cat-file -p ${spec} failed (${r.code}): ${r.stderr.trim()}`, r.code, [
+        "cat-file",
+        "-p",
+        spec,
+      ]);
+    }
+    return r.stdout;
+  }
+
+  async writeTreeFromIndex(entries: TreeEntry[], baseTree?: string): Promise<string> {
     const dir = await mkdtemp(join(tmpdir(), "jejak-index-"));
     const indexFile = join(dir, "index");
     const env = { ...process.env, GIT_INDEX_FILE: indexFile };
     try {
+      if (baseTree) await this.run(["read-tree", baseTree], undefined, env);
       for (const e of entries) {
         await this.run(
           ["update-index", "--add", "--cacheinfo", `${e.mode},${e.sha},${e.path}`],
@@ -111,9 +161,8 @@ export class RealGitClient implements GitClient {
     }
   }
 
-  async commitTree(tree: string, message: string): Promise<string> {
-    // Pin a deterministic identity so the seed commit never depends on (or requires) the
-    // developer's git user.* config.
+  async commitTree(tree: string, message: string, parents: string[] = []): Promise<string> {
+    // Pin a deterministic identity so commits never depend on (or require) the dev's git user.* config.
     const env = {
       ...process.env,
       GIT_AUTHOR_NAME: "jejak",
@@ -121,7 +170,10 @@ export class RealGitClient implements GitClient {
       GIT_COMMITTER_NAME: "jejak",
       GIT_COMMITTER_EMAIL: "jejak@localhost",
     };
-    return (await this.run(["commit-tree", tree, "-m", message], undefined, env)).trim();
+    const parentArgs = parents.flatMap((p) => ["-p", p]);
+    return (
+      await this.run(["commit-tree", tree, ...parentArgs, "-m", message], undefined, env)
+    ).trim();
   }
 
   async updateRefCAS(ref: string, newSha: string, oldSha = ""): Promise<boolean> {

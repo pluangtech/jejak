@@ -233,7 +233,7 @@ jejak/
 ├── src/
 │   ├── cli.ts                    (commander entry; bin target)
 │   ├── version.ts                (single source of truth)
-│   ├── shadow_branch.ts          ← item 4
+│   ├── shadow/                   ← item 4 (ShadowRepository, sessionPath, GitBlobPayloadSink)
 │   ├── snapshot_worker.ts        ← item 5
 │   ├── capture_hook_utils.ts     ← item 5
 │   ├── commit_trailers.ts        ← item 5
@@ -371,10 +371,10 @@ Pattern-based (`src/strip/`): reader Adapter+Registry, block Strategy+Registry, 
 
 ## 4. Shadow storage & init
 
-**Status:** `in progress` — Phase A (init) shipped; Phase B (upsert) pending item 3  
-**Plan:** [plans/INIT-IMPLEMENTATION-PLAN-v2.md](plans/INIT-IMPLEMENTATION-PLAN-v2.md) (pattern-based, hybrid distribution) — supersedes the original plan. **Phase A** (init) is done; **Phase B** (upsert/round-trip) needs item 3  
+**Status:** `done` — Phase A (init) + Phase B (upsert/round-trip) shipped  
+**Plan:** [plans/INIT-IMPLEMENTATION-PLAN-v2.md](plans/INIT-IMPLEMENTATION-PLAN-v2.md) (pattern-based, hybrid distribution) — supersedes the original plan  
 **LLD:** §10 shadow write · §11 layout · build steps S2, S3  
-**Depends on:** 3 (Phase B); 2 sign-off (Phase A)  
+**Depends on:** 3 (Phase B — now landed); 2 sign-off (Phase A)  
 **Verbs touched:** `jejak init`
 
 Write stripped sessions to `refs/heads/jejak/sessions/v1` without touching the working tree.
@@ -382,9 +382,8 @@ Write stripped sessions to `refs/heads/jejak/sessions/v1` without touching the w
 **Done when:**
 - [x] `src/git/GitClient.ts` (facade) + `src/shadow/ShadowRepository.ts` — idempotent `ensure()` (orphan ref + seed tree + CAS + `merge.ours.driver`)
 - [x] `jejak init` creates the shadow ref + seed-tree `.gitattributes`, writes committed `.jejak/config.json` `{v, agent, mode}`, resolves dev_handle, hybrid project/global mode
-- [x] Unit + integration tests green (47 tests; real-git integration for ref creation, seed tree, idempotency, exit codes)
-- [ ] **(Phase B)** `ShadowRepository.upsert()` / `sessionPath()` + round-trip test: write session → read back from ref
-- [ ] **(Phase B)** Test project checklist below passes (step 4 needs item 3)
+- [x] **(Phase B)** `ShadowRepository.upsert()` + `sessionPath()` + `GitBlobPayloadSink` — parented commit, CAS retry, tree-hash dedup; `_dev write-fixture`/`read-fixture` round-trip
+- [x] **(Phase B)** Test project checklist passes (write→read returns identical events; ref never checked out)
 
 **Test project checklist:**
 1. In test project: `jejak init`
@@ -408,9 +407,14 @@ Write stripped sessions to `refs/heads/jejak/sessions/v1` without touching the w
 - **Test-project checklist 1–3 verified** in `~/Documents/projects/jejak-testproj`:
   picker → summary; `git show-ref` shows the shadow ref; working tree stayed on `main`;
   `.jejak/config.json` + `.jejakignore` written; re-run prints "already initialized".
-  Step 4 (write/read-fixture round-trip) is **Phase B**, gated on item 3.
-- **Remaining for full `done`:** Phase B — `ShadowRepository.upsert()` / `sessionPath()`
-  + round-trip — unblocked once item 3 (strip) lands.
+- **Phase B done (2026-05-31):** `ShadowRepository.upsert()` composes a new tree on the shadow
+  tip via the `GitClient` temp-index seam (parented `commit-tree` → CAS `update-ref`, with
+  retry + **tree-hash dedup** so re-capture is a no-op). `GitBlobPayloadSink` stores offloaded
+  payloads as git blobs at `payloads/<sha256>` (the strip `sha` resolves to a real, dedup'd
+  object). `_dev write-fixture <raw> --session --handle` strips + upserts; `_dev read-fixture`
+  reads `events.jsonl.gz` back. Integration test proves: tree layout, **read-back == direct
+  strip**, payload offloaded, HEAD/branch untouched, parented commit, idempotent re-write.
+  Dead `src/shadow_branch.ts` stub removed (superseded by `src/shadow/`).
 
 ---
 
