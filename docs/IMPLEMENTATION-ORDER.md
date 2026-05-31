@@ -492,7 +492,7 @@ contracts). This item builds the home for them and the guardrail that keeps them
 
 ## 5. Capture loop (hooks + worker)
 
-**Status:** `in progress` — **5a shipped** (setup + ledger + trailers + active-session-id + minimal doctor); **5b pending** (agent hooks + worker)  
+**Status:** `done` — 5a (setup + ledger + trailers) + 5b (agent hooks + worker) shipped  
 **Plan:** [plans/CAPTURE-LOOP-IMPLEMENTATION-PLAN.md](plans/CAPTURE-LOOP-IMPLEMENTATION-PLAN.md) (validated PASS) — phased 5a → 5b  
 **LLD:** §5 lifecycle · §6 worker · §14 ledger · build steps S3b, S4  
 **Depends on:** 4  
@@ -502,14 +502,14 @@ End-to-end capture: session start → partial snapshots → session end → shad
 
 **Done when:**
 - [x] **(5a)** Session ledger (SQLite, `~/.jejak/<hash>/ledger.db`) tracks open/captured sessions
-- [ ] **(5b)** Agent hooks + `SnapshotWorker` with flag-and-rerun coalescing
-- [ ] **(5b)** Local staging at `~/.jejak/<hash>/staging/` before shared write
+- [x] **(5b)** Agent hooks (`src/hooks/`) + `SnapshotWorker` (`src/capture/`) with single-flight flag-and-rerun; SessionEnd spawns the detached `_worker`
+- [x] **(5b)** Local staging at `~/.jejak/<hash>/staging/` before shared write (accumulated, cleared on final success)
 - [x] **(5a)** `prepare-commit-msg` appends `Jejak-Session:` trailers (exit 0 always); `active-session-id`
 - [x] **(5a)** `jejak setup --claude-code` wires hooks — **mode-aware** (`npx jejak` project / abs path global), **additive no-clobber** merge into `.claude/settings.json`, executable git hook (foreign one left untouched + warned)
 - [x] **(5a)** **Self-setup refusal** shared by init/setup (`src/guard.ts`); `--i-know-what-im-doing` override
 - [x] **(5a)** **`.jejak/disabled` escape hatch** — `prepare-commit-msg` honors it; agent handlers will (5b)
 - [x] **(5a)** **Minimal `jejak doctor`** (agent hook / git hook / ledger / `.jejak/disabled` / staging). Full `--trace` = item 6
-- [ ] **(5b)** Test project checklist below passes end-to-end (real session capture)
+- [x] **(5b)** End-to-end verified: driving `_hook session-start`→`stop`→ final `_worker` lands the session on the shadow ref (read-back == direct strip), ledger `captured`, work tree untouched
 
 **Test project checklist:**
 1. From inside the **jejak repo itself**: `jejak setup --claude-code` → exits non-zero with self-setup refusal message
@@ -532,8 +532,16 @@ End-to-end capture: session start → partial snapshots → session end → shad
   `docs/user/setup.md` added + registered. (Native `better-sqlite3` builds automatically on a
   fresh `pnpm install`/CI via `pnpm.onlyBuiltDependencies` — verified clean-checkout. Only an
   incremental `pnpm add` may skip the rebuild; recover with `pnpm rebuild better-sqlite3`.)
-- **5b remaining:** agent hook handlers + detached `SnapshotWorker` (strip→stage→upsert) +
-  single-flight; then the end-to-end test-project checklist below.
+- **5b shipped (2026-05-31):** `src/hooks/` (payload parse, `failOpen` decorator, `HookRouter`,
+  SessionStart/Stop/SessionEnd handlers) + `src/capture/` (`SnapshotWorker` strip→stage→upsert,
+  `StagingStore`, `SingleFlight` flag-and-rerun, `DetachedWorkerSpawner`) + `src/pii/NoopPiiScanner`
+  seam (item 6 fills it). Strip gained an `onProgress(offset)` seam for resume. Hidden `_worker`
+  command runs the detached final capture. **Item 5 complete.** 140 tests; verified e2e through the
+  built CLI: piping hook JSON to `_hook session-start`→`stop` + final `_worker` lands
+  `sessions/<handle>/<shard>/<id>/{events.jsonl.gz,meta.json}` + `payloads/<sha>`, branch untouched,
+  `doctor` all-green. Removed `snapshot_worker.ts` / `capture_hook_utils.ts` stubs.
+- **Capture stays local** — never pushed; PII scan + push hard-gate are item 6 (the `PiiScanner`
+  seam is injected as `NoopPiiScanner` for now).
 
 ---
 

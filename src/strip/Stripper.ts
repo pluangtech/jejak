@@ -9,6 +9,8 @@ export interface StripOptions {
   stripThinking?: boolean;
   sink: PayloadSink;
   onSkippedLine?: () => void;
+  /** Called per emitted record with the byte offset AFTER it (resume point). */
+  onProgress?: (offset: number) => void;
 }
 
 /** Line types that carry no trace value — dropped entirely. */
@@ -26,7 +28,11 @@ export async function* stripTranscript(
   opts: StripOptions,
 ): AsyncIterable<StrippedEvent> {
   const ctx: StripContext = { stripThinking: opts.stripThinking ?? false, sink: opts.sink };
-  const readOpts: ReadOptions = { fromOffset: opts.fromOffset, onSkippedLine: opts.onSkippedLine };
+  const readOpts: ReadOptions = {
+    fromOffset: opts.fromOffset,
+    onSkippedLine: opts.onSkippedLine,
+    onProgress: opts.onProgress,
+  };
 
   for await (const rec of reader.read(path, readOpts)) {
     if (NOISE_LINES.has(rec.lineType) || !KEPT_LINES.has(rec.lineType)) continue;

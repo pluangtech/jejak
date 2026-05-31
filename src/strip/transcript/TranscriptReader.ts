@@ -5,6 +5,8 @@ export interface ReadOptions {
   fromOffset?: number;
   /** Called once per malformed (unparseable) line, which is skipped. */
   onSkippedLine?: () => void;
+  /** Called per emitted record with the byte offset AFTER it (the resume point). */
+  onProgress?: (offset: number) => void;
 }
 
 /**

@@ -31,6 +31,8 @@ export interface GitClient {
   catBlob(spec: string): Promise<Buffer>;
   /** Append trailers to a commit-message file in place (`git interpret-trailers`). No-op if empty. */
   interpretTrailers(messageFile: string, trailers: string[]): Promise<void>;
+  /** Most recent commit carrying a `Jejak-Session: <id>` trailer, or null. */
+  findCommitWithTrailer(sessionId: string): Promise<string | null>;
   /**
    * Build a tree using a throwaway index. With `baseTree`, seed the index from it first
    * (read-tree) so `entries` are added on top — the single tree-building seam for seed + upsert.
@@ -148,6 +150,18 @@ export class RealGitClient implements GitClient {
     if (trailers.length === 0) return;
     const trailerArgs = trailers.flatMap((t) => ["--trailer", t]);
     await this.run(["interpret-trailers", "--in-place", ...trailerArgs, messageFile]);
+  }
+
+  async findCommitWithTrailer(sessionId: string): Promise<string | null> {
+    const r = await runGit(
+      ["log", "-1", "-F", `--grep=Jejak-Session: ${sessionId}`, "--format=%H"],
+      {
+        cwd: this.cwd,
+      },
+    );
+    if (r.code !== 0) return null; // no commits / unborn HEAD
+    const sha = r.stdout.trim();
+    return sha.length > 0 ? sha : null;
   }
 
   async writeTreeFromIndex(entries: TreeEntry[], baseTree?: string): Promise<string> {

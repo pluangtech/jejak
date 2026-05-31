@@ -45,7 +45,7 @@ Living spec for user-facing commands and journeys. **Implementation tracking:** 
 | `npm install -g` / `pnpm link` / `jejak --version` | 1–2 | spec | **Step 0** — get the CLI |
 | `jejak init` | 4 | shipped | **Step 1** — add jejak to a project |
 | `jejak setup --claude-code` | 5 | shipped | **Step 2** — configure hooks |
-| *(hooks — automatic)* | 5 | 5b | Capture on session end (worker — item 5b) |
+| *(hooks — automatic)* | 5 | shipped | Capture on Stop / SessionEnd → shadow ref (local; pushed in item 6) |
 | `jejak status` | 6 | stub | Local vs origin trace state |
 | `jejak active-session-id` | 5 | shipped | Open session(s) |
 | `jejak log` / `show` / `link` | 6 | stub | Browse traces |

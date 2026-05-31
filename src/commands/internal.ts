@@ -1,11 +1,16 @@
 import { existsSync } from "node:fs";
 import { Command } from "commander";
+import { captureSnapshot } from "../capture/captureSnapshot.js";
 import { devReadFixture } from "../dev/read_fixture.js";
 import { devStrip } from "../dev/strip.js";
 import { devWriteFixture } from "../dev/write_fixture.js";
 import { RealGitClient } from "../git/GitClient.js";
+import { createCaptureContext } from "../hooks/CaptureContext.js";
+import { dispatchHook } from "../hooks/HookRouter.js";
 import { runPrepareCommitMsg } from "../hooks/PrepareCommitMsgHandler.js";
 import { isDisabled } from "../hooks/disabled.js";
+import { failOpen } from "../hooks/failOpen.js";
+import { parseHookPayload, readStdin } from "../hooks/payload.js";
 import { SessionLedger } from "../ledger/SessionLedger.js";
 import { localPaths } from "../localstate/paths.js";
 
@@ -14,13 +19,34 @@ function failExit(e: unknown): never {
   process.exit(1);
 }
 
-/** Register the hidden `_hook` and `_dev` command groups. */
+/** Read the Claude stdin payload, build the capture context, and dispatch the event (fail-open). */
+async function runAgentHook(event: string): Promise<void> {
+  const payload = parseHookPayload(await readStdin());
+  if (!payload) return; // no session id → nothing to do, exit 0
+  const git = new RealGitClient(payload.cwd ?? process.cwd());
+  let repoRoot: string;
+  try {
+    repoRoot = await git.repoRoot();
+  } catch {
+    return; // not a git repo → exit 0
+  }
+  const ctx = createCaptureContext(repoRoot, git);
+  try {
+    await failOpen({ repoRoot, hook: event, sessionId: payload.sessionId, log: ctx.log }, () =>
+      dispatchHook(event, payload, ctx),
+    );
+  } finally {
+    ctx.ledger.close();
+  }
+}
+
+/** Register the hidden `_hook`, `_dev`, and `_worker` command groups. */
 export function registerInternalCommands(program: Command): void {
   const hook = new Command("_hook").description("Internal hook dispatcher");
-  // Agent-event handlers land in item 5b; wired-but-no-op until then (fail-open, exit 0).
-  hook.command("session-start").action(() => {});
-  hook.command("stop").action(() => {});
-  hook.command("session-end").action(() => {});
+  // Agent events: read Claude payload on stdin → fail-open dispatch. Always exit 0.
+  hook.command("session-start").action(() => runAgentHook("session-start"));
+  hook.command("stop").action(() => runAgentHook("stop"));
+  hook.command("session-end").action(() => runAgentHook("session-end"));
   // prepare-commit-msg (5a): stamp one Jejak-Session trailer per open session. ALWAYS exit 0.
   hook
     .command("prepare-commit-msg")
@@ -101,4 +127,28 @@ export function registerInternalCommands(program: Command): void {
       }
     });
   program.addCommand(dev, { hidden: true });
+
+  // Detached snapshot worker (spawned by the SessionEnd hook). Runs the strip→stage→upsert pipeline.
+  const worker = new Command("_worker").description("Internal detached snapshot worker");
+  worker
+    .requiredOption("--session <id>", "Session id")
+    .option("--final", "Final capture (SessionEnd): poll commit, write final meta, clean staging")
+    .action(async (o: { session: string; final?: boolean }) => {
+      const git = new RealGitClient(process.cwd());
+      let repoRoot: string;
+      try {
+        repoRoot = await git.repoRoot();
+      } catch {
+        return;
+      }
+      const ctx = createCaptureContext(repoRoot, git);
+      try {
+        await captureSnapshot(o.session, ctx, { final: Boolean(o.final) });
+      } catch (e) {
+        ctx.log(`_worker error: ${e instanceof Error ? e.message : String(e)}`);
+      } finally {
+        ctx.ledger.close();
+      }
+    });
+  program.addCommand(worker, { hidden: true });
 }

@@ -14,6 +14,13 @@
         "src/shadow/constants.ts",
         "src/shadow/sessionPath.ts"
       ]
+    },
+    {
+      "id": "capture",
+      "title": "How capture works",
+      "status": "shipped",
+      "page": "concepts/capture.md",
+      "sources": ["src/capture/SnapshotWorker.ts", "src/hooks/HookRouter.ts"]
     }
   ]
 }

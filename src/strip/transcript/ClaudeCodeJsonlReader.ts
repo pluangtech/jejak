@@ -28,7 +28,10 @@ export class ClaudeCodeJsonlReader implements TranscriptReader {
         buf = buf.slice(nl + 1);
         offset += Buffer.byteLength(line, "utf8") + 1; // +1 for the newline
         const rec = parseLine(line, offset, opts);
-        if (rec) yield rec;
+        if (rec) {
+          opts?.onProgress?.(offset);
+          yield rec;
+        }
       }
     }
 
@@ -36,7 +39,10 @@ export class ClaudeCodeJsonlReader implements TranscriptReader {
     if (tail.trim().length > 0) {
       offset += Buffer.byteLength(tail, "utf8");
       const rec = parseLine(tail, offset, opts);
-      if (rec) yield rec;
+      if (rec) {
+        opts?.onProgress?.(offset);
+        yield rec;
+      }
     }
   }
 }

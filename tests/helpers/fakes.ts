@@ -46,6 +46,10 @@ export class FakeGitClient implements GitClient {
   async interpretTrailers(messageFile: string, trailers: string[]): Promise<void> {
     this.trailerCalls.push({ messageFile, trailers });
   }
+  commitForTrailer: string | null = null;
+  async findCommitWithTrailer(): Promise<string | null> {
+    return this.commitForTrailer;
+  }
   async writeTreeFromIndex(_entries: TreeEntry[], _baseTree?: string): Promise<string> {
     return "tree1";
   }
