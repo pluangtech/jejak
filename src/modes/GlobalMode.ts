@@ -15,4 +15,9 @@ export class GlobalMode implements ModeStrategy {
   nextSteps(): string[] {
     return ["jejak setup --claude-code   (each developer runs this once)"];
   }
+
+  /** Embed the resolved absolute path, shell-quoted (machine-specific; re-run setup --force after upgrade). */
+  hookCli(absCliPath: string): string {
+    return `'${absCliPath.replace(/'/g, "'\\''")}'`;
+  }
 }

@@ -1,26 +1,13 @@
 import type { CommandModule } from "./CommandModule.js";
+import { activeSessionIdCommand } from "./active-session-id.command.js";
+import { doctorCommand } from "./doctor.command.js";
 import { initCommand } from "./init.command.js";
+import { setupCommand } from "./setup.command.js";
 import { type StubSpec, makeStubCommand } from "./stubCommand.js";
 
 /** Not-yet-implemented verbs. Graduating one = move it to its own *.command.ts and drop it here. */
 const STUB_SPECS: StubSpec[] = [
-  {
-    name: "setup",
-    description: "Configure hooks for a supported agent",
-    item: 5,
-    lldSection: "§9",
-    configure: (c) =>
-      c
-        .option("--claude-code", "Configure Claude Code hooks (v0.1)")
-        .option("--force", "Re-write hook scripts after CLI upgrade"),
-  },
   { name: "status", description: "Local vs origin trace branch state", item: 6, lldSection: "§16" },
-  {
-    name: "active-session-id",
-    description: "List open capture session IDs",
-    item: 5,
-    lldSection: "§11",
-  },
   { name: "log", description: "List captured sessions", item: 6, lldSection: "§16" },
   {
     name: "show",
@@ -45,13 +32,6 @@ const STUB_SPECS: StubSpec[] = [
     lldSection: "§16",
   },
   {
-    name: "doctor",
-    description: "Diagnostics for setup, sync, and capture health",
-    item: 6,
-    lldSection: "§16",
-    configure: (c) => c.option("--trace", "Verbose diagnostic trace"),
-  },
-  {
     name: "uninstall",
     description: "Remove hooks; optional local state purge",
     item: 6,
@@ -61,7 +41,13 @@ const STUB_SPECS: StubSpec[] = [
 ];
 
 /** The public command registry, in display order (init first). */
-export const PUBLIC_COMMANDS: CommandModule[] = [initCommand, ...STUB_SPECS.map(makeStubCommand)];
+export const PUBLIC_COMMANDS: CommandModule[] = [
+  initCommand,
+  setupCommand,
+  activeSessionIdCommand,
+  doctorCommand,
+  ...STUB_SPECS.map(makeStubCommand),
+];
 
 /** Public verb names — must match scripts/expected-verbs.json (verb-coverage test). */
 export const PUBLIC_COMMAND_NAMES: string[] = PUBLIC_COMMANDS.map((c) => c.name);

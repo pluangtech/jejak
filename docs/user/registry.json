@@ -1,5 +1,8 @@
 {
-  "verbs": [{ "name": "init", "status": "shipped", "page": "init.md" }],
+  "verbs": [
+    { "name": "init", "status": "shipped", "page": "init.md" },
+    { "name": "setup", "status": "shipped", "page": "setup.md" }
+  ],
   "concepts": [
     {
       "id": "shadow-branch",

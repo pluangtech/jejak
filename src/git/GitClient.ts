@@ -29,6 +29,8 @@ export interface GitClient {
   hashObject(content: string | Buffer): Promise<string>;
   /** Read a blob/object (binary-safe), e.g. `<commit>:<path>`. */
   catBlob(spec: string): Promise<Buffer>;
+  /** Append trailers to a commit-message file in place (`git interpret-trailers`). No-op if empty. */
+  interpretTrailers(messageFile: string, trailers: string[]): Promise<void>;
   /**
    * Build a tree using a throwaway index. With `baseTree`, seed the index from it first
    * (read-tree) so `entries` are added on top — the single tree-building seam for seed + upsert.
@@ -140,6 +142,12 @@ export class RealGitClient implements GitClient {
       ]);
     }
     return r.stdout;
+  }
+
+  async interpretTrailers(messageFile: string, trailers: string[]): Promise<void> {
+    if (trailers.length === 0) return;
+    const trailerArgs = trailers.flatMap((t) => ["--trailer", t]);
+    await this.run(["interpret-trailers", "--in-place", ...trailerArgs, messageFile]);
   }
 
   async writeTreeFromIndex(entries: TreeEntry[], baseTree?: string): Promise<string> {

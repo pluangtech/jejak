@@ -22,4 +22,9 @@ export class ProjectMode implements ModeStrategy {
       "jejak setup --claude-code   (wire hooks), then commit package.json + .jejak/config.json",
     ];
   }
+
+  /** Portable, committable invocation — teammates get it via `npm install`, no per-dev setup. */
+  hookCli(): string {
+    return "npx jejak";
+  }
 }

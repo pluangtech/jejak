@@ -11,4 +11,9 @@ export interface ModeStrategy {
   prepare(ctx: InitContext): Promise<void>;
   /** Mode-specific lines for the final "Next:" guidance. */
   nextSteps(ctx: InitContext): string[];
+  /**
+   * The shell-ready CLI invocation embedded into hook scripts (`setup`). Project → portable
+   * `npx jejak` (committable); global → the resolved absolute path (shell-quoted, machine-specific).
+   */
+  hookCli(absCliPath: string): string;
 }

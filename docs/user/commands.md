@@ -25,19 +25,8 @@ Configure hooks for a supported agent
 
 Options:
   --claude-code  Configure Claude Code hooks (v0.1)
-  --force        Re-write hook scripts after CLI upgrade
+  --force        Re-write hook scripts after a CLI upgrade
   -h, --help     display help for command
-```
-
-## `jejak status`
-
-```text
-Usage: jejak status [options]
-
-Local vs origin trace branch state
-
-Options:
-  -h, --help  display help for command
 ```
 
 ## `jejak active-session-id`
@@ -46,6 +35,30 @@ Options:
 Usage: jejak active-session-id [options]
 
 List open capture session IDs
+
+Options:
+  --all-open  Print every open session (one per line)
+  -h, --help  display help for command
+```
+
+## `jejak doctor`
+
+```text
+Usage: jejak doctor [options]
+
+Diagnostics for setup, sync, and capture health
+
+Options:
+  --trace     Verbose diagnostic trace (full diagnostics land in item 6)
+  -h, --help  display help for command
+```
+
+## `jejak status`
+
+```text
+Usage: jejak status [options]
+
+Local vs origin trace branch state
 
 Options:
   -h, --help  display help for command
@@ -120,18 +133,6 @@ Usage: jejak attach [options]
 Recover a missed capture into the shadow branch
 
 Options:
-  -h, --help  display help for command
-```
-
-## `jejak doctor`
-
-```text
-Usage: jejak doctor [options]
-
-Diagnostics for setup, sync, and capture health
-
-Options:
-  --trace     Verbose diagnostic trace
   -h, --help  display help for command
 ```
 

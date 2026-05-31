@@ -492,23 +492,24 @@ contracts). This item builds the home for them and the guardrail that keeps them
 
 ## 5. Capture loop (hooks + worker)
 
-**Status:** `pending`  
+**Status:** `in progress` — **5a shipped** (setup + ledger + trailers + active-session-id + minimal doctor); **5b pending** (agent hooks + worker)  
+**Plan:** [plans/CAPTURE-LOOP-IMPLEMENTATION-PLAN.md](plans/CAPTURE-LOOP-IMPLEMENTATION-PLAN.md) (validated PASS) — phased 5a → 5b  
 **LLD:** §5 lifecycle · §6 worker · §14 ledger · build steps S3b, S4  
 **Depends on:** 4  
-**Verbs touched:** `jejak setup --claude-code`, `jejak active-session-id`, automatic capture
+**Verbs touched:** `jejak setup --claude-code`, `jejak active-session-id`, `jejak doctor` (minimal), automatic capture
 
 End-to-end capture: session start → partial snapshots → session end → shadow write. Git hook stamps trailers (inert until ledger has open sessions).
 
 **Done when:**
-- [ ] Session ledger (SQLite) tracks open/captured sessions
-- [ ] Agent hooks + `snapshot_worker` with flag-and-rerun coalescing
-- [ ] Local staging at `~/.jejak/staging/` before shared write
-- [ ] `prepare-commit-msg` appends `Jejak-Session:` trailers (exit 0 always)
-- [ ] `jejak setup --claude-code` wires hooks — **mode-aware** invocation: portable `npx jejak` in project mode (committable), resolved absolute path in global mode (per-machine). **Never clobber** existing `.claude/settings.json` hooks: detect → merge additively → stop and guide on conflict (`init` already reports pre-existing hooks)
-- [ ] **Self-setup refusal:** `jejak init` / `jejak setup` exit non-zero in the jejak package repo. Override `--i-know-what-im-doing` undocumented.
-- [ ] **`.jejak/disabled` escape hatch:** every hook (agent and git) checks for `.jejak/disabled` at repo root before doing any work; exits 0 silently if present. Documented in README as the per-repo opt-out.
-- [ ] **Minimal `jejak doctor`** (setup-checks only): agent hook in `.claude/settings.json`, git hook in `.git/hooks/`, ledger DB exists, no orphan locks, `.jejak/disabled` presence reported. Full doctor (sync, dispatch errors, PII gate, trace) lands in item 6.
-- [ ] Test project checklist below passes
+- [x] **(5a)** Session ledger (SQLite, `~/.jejak/<hash>/ledger.db`) tracks open/captured sessions
+- [ ] **(5b)** Agent hooks + `SnapshotWorker` with flag-and-rerun coalescing
+- [ ] **(5b)** Local staging at `~/.jejak/<hash>/staging/` before shared write
+- [x] **(5a)** `prepare-commit-msg` appends `Jejak-Session:` trailers (exit 0 always); `active-session-id`
+- [x] **(5a)** `jejak setup --claude-code` wires hooks — **mode-aware** (`npx jejak` project / abs path global), **additive no-clobber** merge into `.claude/settings.json`, executable git hook (foreign one left untouched + warned)
+- [x] **(5a)** **Self-setup refusal** shared by init/setup (`src/guard.ts`); `--i-know-what-im-doing` override
+- [x] **(5a)** **`.jejak/disabled` escape hatch** — `prepare-commit-msg` honors it; agent handlers will (5b)
+- [x] **(5a)** **Minimal `jejak doctor`** (agent hook / git hook / ledger / `.jejak/disabled` / staging). Full `--trace` = item 6
+- [ ] **(5b)** Test project checklist below passes end-to-end (real session capture)
 
 **Test project checklist:**
 1. From inside the **jejak repo itself**: `jejak setup --claude-code` → exits non-zero with self-setup refusal message
@@ -521,7 +522,17 @@ End-to-end capture: session start → partial snapshots → session end → shad
 8. Make a git commit → `git log -1 --format=%B` contains `Jejak-Session:` trailer (one per open session at commit time)
 
 **Results / notes:**
-- 
+- **5a shipped (2026-05-31):** `src/ledger` (SQLite `SessionLedger`), `src/setup` (resolveCli,
+  additive `settingsMerge`, `ClaudeCodeHookInstaller`, `runSetup`), `src/hooks` (disabled check,
+  `PrepareCommitMsgHandler`), `src/localstate/paths`, shared `src/guard.ts`. Graduated `setup` /
+  `active-session-id` / `doctor` to real command modules; `_hook prepare-commit-msg` wired
+  (always exit 0); agent `_hook` events are wired-but-no-op until 5b. 123 tests; verified e2e:
+  `setup --claude-code` writes `.claude/settings.json` (npx hooks) + executable git hook,
+  `active-session-id` silent exit 0, `doctor` reports, real `interpret-trailers` stamps a trailer.
+  `docs/user/setup.md` added + registered. (Note: native `better-sqlite3` needs `pnpm rebuild`
+  if a prior `pnpm add` skipped build scripts.)
+- **5b remaining:** agent hook handlers + detached `SnapshotWorker` (strip→stage→upsert) +
+  single-flight; then the end-to-end test-project checklist below.
 
 ---
 

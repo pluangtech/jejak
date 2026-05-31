@@ -42,6 +42,10 @@ export class FakeGitClient implements GitClient {
   async catBlob(): Promise<Buffer> {
     return Buffer.alloc(0);
   }
+  trailerCalls: Array<{ messageFile: string; trailers: string[] }> = [];
+  async interpretTrailers(messageFile: string, trailers: string[]): Promise<void> {
+    this.trailerCalls.push({ messageFile, trailers });
+  }
   async writeTreeFromIndex(_entries: TreeEntry[], _baseTree?: string): Promise<string> {
     return "tree1";
   }

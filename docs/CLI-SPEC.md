@@ -44,14 +44,14 @@ Living spec for user-facing commands and journeys. **Implementation tracking:** 
 |---|---|---|---|
 | `npm install -g` / `pnpm link` / `jejak --version` | 1–2 | spec | **Step 0** — get the CLI |
 | `jejak init` | 4 | shipped | **Step 1** — add jejak to a project |
-| `jejak setup --claude-code` | 5 | stub | **Step 2** — configure hooks |
-| *(hooks — automatic)* | 5 | — | Capture on session end |
+| `jejak setup --claude-code` | 5 | shipped | **Step 2** — configure hooks |
+| *(hooks — automatic)* | 5 | 5b | Capture on session end (worker — item 5b) |
 | `jejak status` | 6 | stub | Local vs origin trace state |
-| `jejak active-session-id` | 5 | stub | Open session(s) |
+| `jejak active-session-id` | 5 | shipped | Open session(s) |
 | `jejak log` / `show` / `link` | 6 | stub | Browse traces |
 | `jejak push` / `fetch` | 6 | stub | Share traces |
 | `jejak attach` | 6 | stub | Missed capture recovery |
-| `jejak doctor` / `--trace` | 6 | stub | Diagnostics |
+| `jejak doctor` / `--trace` | 5/6 | 5: setup checks · 6: `--trace` | Diagnostics |
 | `npm update -g` + `jejak setup --force` | 2 | spec | Update CLI + refresh hook scripts |
 | `jejak uninstall` | 6 | stub | Remove hooks; optional `~/.jejak/<repo-hash>/` purge |
 
@@ -153,9 +153,9 @@ Write **committed `.jejak/config.json`** = `{ v, agent, mode }`. `dev_handle` is
 
 ### `jejak setup`
 
-**Item:** 5 · **Status:** stub  
+**Item:** 5 · **Status:** shipped  
 **When:** After `jejak init`. **Configure** hooks for one agent — **not** `npm install`.  
-**Depends on:** init done; `config.agent` matches flag.
+**Depends on:** init done; `config.agent` matches flag. User guide: [`docs/user/setup.md`](user/setup.md).
 
 **Syntax:** `jejak setup --claude-code [--force]`
 
@@ -166,9 +166,13 @@ Write **committed `.jejak/config.json`** = `{ v, agent, mode }`. `dev_handle` is
 
 v0.1: no bare `jejak setup` — exit **2** with hint to pass `--claude-code`.
 
-**Behavior:** resolve `JEJAK_CLI`; merge `adapters/claude-code/settings.json.template`; install `prepare-commit-msg` git hook; self-setup refusal; does **not** create shadow ref.
+**Behavior:** resolve the CLI invocation from `config.mode` (`npx jejak` in project mode, the
+resolved absolute path in global mode); **additively merge** jejak's `SessionStart`/`Stop`/
+`SessionEnd` hooks into `.claude/settings.json` (idempotent; **never clobbers** foreign hooks);
+install the `prepare-commit-msg` git hook (leaves a foreign one untouched with a warning);
+self-setup refusal; does **not** create the shadow ref.
 
-**Mismatch:** `config.agent` ≠ `--claude-code` → exit **1**.
+**Mismatch:** `config.agent` ≠ `--claude-code` → exit **1**. Not initialized → exit **1**. Bare (no agent flag) → exit **2**.
 
 **Test project:** see [IMPLEMENTATION-ORDER.md §5](IMPLEMENTATION-ORDER.md#5-capture-loop-hooks--worker).
 
