@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { buildSessionMeta } from "../analytics/aggregate.js";
 import { type GitClient, RealGitClient } from "../git/GitClient.js";
 import { GitBlobPayloadSink } from "../shadow/GitBlobPayloadSink.js";
 import { ShadowRepository } from "../shadow/ShadowRepository.js";
@@ -33,13 +34,12 @@ export async function devWriteFixture(
   // Canonical JSONL: one newline-terminated object per line (matches `_dev strip` output).
   const eventsJsonl = events.map((e) => `${JSON.stringify(e)}\n`).join("");
 
-  const meta = {
-    v: 1,
-    session_id: opts.sessionId,
+  const meta = buildSessionMeta(events, {
+    sessionId: opts.sessionId,
+    handle: opts.handle,
     agent,
-    dev_handle: opts.handle,
-    event_count: events.length,
-  };
+    status: "captured",
+  });
 
   const { commit, path } = await new ShadowRepository(git).upsert({
     handle: opts.handle,

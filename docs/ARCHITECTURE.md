@@ -31,10 +31,13 @@ Hooks return <50ms; work runs in detached workers with flag-and-rerun coalescing
 
 ## 2. Strip
 
-5–20 MB raw → **~95% smaller** (typically <500 KB gzipped per session; scales with reasoning/prose,
-not tool volume). **Thinking kept full verbatim** (the load-bearing "why"). Bulk reduction from
-offloading large `tool_result`/`tool_use` content to **content-addressed payload blobs**
-(preview + sha in the narrative; full bytes expandable / git-dedup'd later).
+**Lossless** strip: keep every line + every field; offload only bulk content (recoverable), drop
+nothing — the trace is an analysis substrate (cost / efficiency / quality / feedback), not just a
+narrative. **Thinking kept full**; **analytics captured per event** (model, token `usage`,
+`stopReason`, `requestId`, sidechain/meta flags, timestamps); session `meta.json` aggregates tokens,
+turns, duration, models, and **cost** (from a versioned `src/pricing/` table). Bulk
+`tool_result`/`tool_use`/large fields → **content-addressed payload blobs** (preview + sha; expandable,
+git-dedup'd). 5–20 MB raw → gzipped narrative ~3–5% of raw; payloads dedup'd separately.
 
 ## 3. Store
 

@@ -1,6 +1,6 @@
 ---
 concept: capture
-sources_hash: sha256:1a16e8d025914f2821c889a146ef09eeb23a7cbee79981fb6b2cd2794708b11c
+sources_hash: sha256:5668046fbb5bb367f7128224de1253af6b801466a59de3c2d8b8c43cd34940a7
 ---
 
 # How capture works

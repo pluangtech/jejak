@@ -1,6 +1,6 @@
 ---
 concept: shadow-branch
-sources_hash: sha256:3527984845a0ecc554628158490c3c00e55e1afd0ad68984e2bc4716e78930e1
+sources_hash: sha256:3d361719856b4ce5ab67dd1ff9d2a5813c1dd45b81dfcd1d98cd0e7ee6cbd512
 ---
 
 # The shadow branch

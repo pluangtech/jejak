@@ -37,12 +37,39 @@ export interface StrippedBlock {
   bytes?: number;
 }
 
-/** One stripped event (one meaningful transcript line). */
+/** Normalized token/usage metrics from an assistant message (the analytics core). */
+export interface Usage {
+  inputTokens?: number;
+  outputTokens?: number;
+  cacheCreationTokens?: number;
+  cacheReadTokens?: number;
+  serviceTier?: string;
+  webSearchRequests?: number;
+  webFetchRequests?: number;
+}
+
+/**
+ * One stripped event — lossless: every analytics-relevant field is preserved (only bulk content
+ * is offloaded to recoverable payload blobs, never dropped). Drives cost/efficiency/quality analysis.
+ */
 export interface StrippedEvent {
   id: string;
   parentId?: string;
-  type: string; // user | assistant | summary
+  type: string;
   timestamp?: string;
   role?: string;
-  content: StrippedBlock[];
+  // analytics (assistant messages)
+  model?: string;
+  usage?: Usage;
+  stopReason?: string;
+  requestId?: string;
+  durationMs?: number; // system lines
+  // context flags (for filtering/segmentation)
+  isSidechain?: boolean;
+  isMeta?: boolean;
+  // content (user/assistant) or simple text (summary/system/ai-title/last-prompt)
+  content?: StrippedBlock[];
+  text?: string;
+  /** Lossless catch-all for remaining small metadata fields (gitBranch, cwd, version, …). */
+  meta?: Record<string, unknown>;
 }

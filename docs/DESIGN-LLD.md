@@ -269,17 +269,26 @@ mid-file** (counted, never aborts — a transcript may be mid-write). Implemente
 
 ## 8. Stripper pipeline
 
-`src/strip/` — raw transcript → a **readable narrative** (`events.jsonl`) plus **content-addressed
-payload blobs** for bulk content. Rules:
+`src/strip/` — raw transcript → `events.jsonl` + **content-addressed payload blobs** for bulk
+content. **Lossless: keep every line and every field; only bulk content is offloaded (recoverable),
+never dropped.** This makes the trace a substrate for cost/efficiency/quality analysis (and feedback
+/ remuneration), not just a readable narrative. *(Supersedes the earlier "drop noise lines" rule.)*
 
-- **Drop** noise lines (`agent-setting`, `queue-operation`, `attachment`, `last-prompt`).
-- **`thinking` → full verbatim, no cap** — the load-bearing, irrecoverable "why". `--strip-thinking`
-  redacts it entirely (privacy opt-out only). *(Supersedes the earlier 4 KB cap.)*
+- **Keep all line types** (`user`, `assistant`, `system`, `summary`, `agent-setting`,
+  `queue-operation`, `file-history-snapshot`, …) — `system` lines carry `durationMs`/`hookErrors`/
+  retries/compaction, all efficiency signal.
+- **Analytics captured per event:** `model`, normalized `usage` (input / output / cache-creation /
+  cache-read tokens, `service_tier`, web search/fetch counts), `stopReason`, `requestId`,
+  `isSidechain`, `isMeta`, `durationMs`, `timestamp`, plus a lossless `meta` catch-all for any
+  remaining small field. Cost is **derived** from tokens × `src/pricing/` (versioned), not stored raw.
+- **`thinking` → full verbatim, no cap** (the load-bearing "why"); `--strip-thinking` redacts (privacy opt-out).
 - **`text` → passthrough.**
-- **`tool_use` → name + small input inline**; a payload-sized input offloaded.
-- **`tool_result` → head+tail preview + bytes + sha**; full content offloaded via a `PayloadSink`
-  (`HashingPayloadSink` for `_dev strip`; `GitBlobPayloadSink` at shadow-write, item 4). The sha is
-  load-bearing: expand-on-demand (`jejak show --expand`, item 6), git-native dedup, change-detection.
+- **`tool_use`/`tool_result` and any large catch-all field (e.g. `toolUseResult`) →** head+tail
+  preview + bytes + sha; full content offloaded via a `PayloadSink` (`HashingPayloadSink` for
+  `_dev strip`; `GitBlobPayloadSink` at shadow-write). The sha is load-bearing: expand-on-demand
+  (`jejak show --expand`), git-native dedup, change-detection.
+- **`meta.json` (per session, `src/analytics/aggregate.ts`):** `started_at`/`ended_at`/`duration_ms`,
+  `turn_count`, `event_count`, `models[]`, token totals, web-tool counts, and `cost_usd` (+ `pricing_version`).
 
 **Size:** the guarantee is the *reduction*, not an absolute cap — bulk tool output is offloaded, so a
 trace's size tracks conversation length (reasoning + prose kept full), not tool-output volume. Real

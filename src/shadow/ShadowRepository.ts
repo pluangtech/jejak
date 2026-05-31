@@ -14,7 +14,7 @@ export interface UpsertInput {
   /** Newline-joined stripped events (the narrative). Gzipped on write. */
   eventsJsonl: string;
   /** Session metadata (written as meta.json). */
-  meta: Record<string, unknown>;
+  meta: object;
   /** Content-addressed payload tree entries from a {@link GitBlobPayloadSink}. */
   payloadEntries?: TreeEntry[];
 }

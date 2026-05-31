@@ -1,3 +1,4 @@
+import { buildSessionMeta } from "../analytics/aggregate.js";
 import type { GitClient } from "../git/GitClient.js";
 import { resolveDevHandle } from "../handle/HandleResolver.js";
 import type { SessionLedger } from "../ledger/SessionLedger.js";
@@ -66,19 +67,18 @@ export class SnapshotWorker {
       return; // do NOT write blocked content to the shared ref
     }
 
-    const meta: Record<string, unknown> = {
-      v: 1,
-      session_id: sessionId,
-      agent: "claude-code",
-      dev_handle: handle,
-      event_count: eventCount,
-      status: opts?.final ? "captured" : "open",
-    };
     let commitSha: string | undefined;
     if (opts?.final) {
       commitSha = (await this.deps.git.findCommitWithTrailer(sessionId)) ?? undefined;
-      if (commitSha) meta.commit_sha = commitSha;
     }
+    const events = parseEvents(eventsJsonl);
+    const meta = buildSessionMeta(events, {
+      sessionId,
+      handle,
+      agent: "claude-code",
+      status: opts?.final ? "captured" : "open",
+      commitSha,
+    });
 
     await this.deps.shadow.upsert({
       handle,
@@ -94,4 +94,12 @@ export class SnapshotWorker {
       this.deps.staging.clear(sessionId); // success → drop the local scratchpad (C-4)
     }
   }
+}
+
+function parseEvents(jsonl: string): StrippedEvent[] {
+  return jsonl
+    .trim()
+    .split("\n")
+    .filter((l) => l.length > 0)
+    .map((l) => JSON.parse(l) as StrippedEvent);
 }
