@@ -529,8 +529,9 @@ End-to-end capture: session start → partial snapshots → session end → shad
   (always exit 0); agent `_hook` events are wired-but-no-op until 5b. 123 tests; verified e2e:
   `setup --claude-code` writes `.claude/settings.json` (npx hooks) + executable git hook,
   `active-session-id` silent exit 0, `doctor` reports, real `interpret-trailers` stamps a trailer.
-  `docs/user/setup.md` added + registered. (Note: native `better-sqlite3` needs `pnpm rebuild`
-  if a prior `pnpm add` skipped build scripts.)
+  `docs/user/setup.md` added + registered. (Native `better-sqlite3` builds automatically on a
+  fresh `pnpm install`/CI via `pnpm.onlyBuiltDependencies` — verified clean-checkout. Only an
+  incremental `pnpm add` may skip the rebuild; recover with `pnpm rebuild better-sqlite3`.)
 - **5b remaining:** agent hook handlers + detached `SnapshotWorker` (strip→stage→upsert) +
   single-flight; then the end-to-end test-project checklist below.
 

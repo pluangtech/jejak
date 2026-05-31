@@ -12,6 +12,7 @@
   },
   "files": ["dist", "adapters"],
   "scripts": {
+    "prepare": "node scripts/ensure-native.mjs",
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
