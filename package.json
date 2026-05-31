@@ -23,6 +23,7 @@
     "docs:check": "vitest run tests/docs tests/integration/docs-examples.test.ts",
     "docs:site:dev": "vitepress dev docs-site",
     "docs:site:build": "vitepress build docs-site",
+    "docs:site:preview": "vitepress preview docs-site",
     "prepublishOnly": "pnpm build"
   },
   "dependencies": {
