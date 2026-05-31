@@ -388,7 +388,21 @@ Write stripped sessions to `refs/heads/jejak/sessions/v1` without touching the w
 (Note: `jejak _dev {write,read}-fixture` is a hidden dev/test subcommand under `src/dev/write_fixture.ts` — not a public verb.)
 
 **Results / notes:**
-- 
+- **2026-05-31 — Phase A shipped** (`5e95019`). Pattern-based, modular build per
+  [INIT-IMPLEMENTATION-PLAN-v2](plans/INIT-IMPLEMENTATION-PLAN-v2.md): `git/GitClient`
+  (facade), `shadow/ShadowRepository.ensure()` (orphan ref + seed tree + CAS +
+  `merge.ours.driver`, never checked out), `agents/` (Adapter+Registry), `modes/`
+  (Strategy: project/global), `handle/` (CoR), `config/ConfigStore`, `prompt/`,
+  `init/` pipeline, thin `cli.ts`. Hybrid distribution + committed `.jejak/config.json`
+  `{v, agent, mode}`; `dev_handle` resolved per-dev (not committed).
+- Build now emits a `#!/usr/bin/env node` shebang (tsup banner) so `pnpm link --global`
+  yields a real `jejak` on PATH (no alias).
+- **Test-project checklist 1–3 verified** in `~/Documents/projects/jejak-testproj`:
+  picker → summary; `git show-ref` shows the shadow ref; working tree stayed on `main`;
+  `.jejak/config.json` + `.jejakignore` written; re-run prints "already initialized".
+  Step 4 (write/read-fixture round-trip) is **Phase B**, gated on item 3.
+- **Remaining for full `done`:** Phase B — `ShadowRepository.upsert()` / `sessionPath()`
+  + round-trip — unblocked once item 3 (strip) lands.
 
 ---
 
