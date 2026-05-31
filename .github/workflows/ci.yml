@@ -23,3 +23,6 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - run: pnpm check:verbs
+      # User-docs guards (item 4.5). `pnpm test` already runs tests/docs/**; this extra step fails
+      # loudly if commands.md wasn't regenerated after a CLI change.
+      - run: pnpm docs:gen && git diff --exit-code docs/user/commands.md

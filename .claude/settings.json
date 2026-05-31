@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm -s docs:check > /dev/null 2>&1 || echo 'jejak: user docs may have drifted — run pnpm docs:check for details, and /docs-drift for a semantic audit.'"
+          }
+        ]
+      }
+    ]
+  }
+}

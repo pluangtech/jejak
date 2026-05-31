@@ -1,0 +1,42 @@
+# Publishes the VitePress docs site to GitHub Pages.
+# DISABLED until the v0.1 tag — the job guard below is intentionally false so this never runs yet
+# (see docs/plans/DOCS-IMPLEMENTATION-PLAN.md §6 and IMPLEMENTATION-ORDER.md §4.5). Flip the guard
+# (and the `vars.DOCS_PUBLISH` repo variable) when we're ready to publish.
+name: docs-site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/user/**"
+      - "docs-site/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    # Guard: stays off until we opt in by setting repo variable DOCS_PUBLISH=true.
+    if: ${{ vars.DOCS_PUBLISH == 'true' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm docs:gen
+      - run: pnpm docs:site:build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-site/.vitepress/dist
+      - id: deploy
+        uses: actions/deploy-pages@v4

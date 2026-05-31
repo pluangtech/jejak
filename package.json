@@ -19,6 +19,10 @@
     "lint:fix": "biome check --write src tests scripts vitest.config.ts tsup.config.ts package.json",
     "test": "vitest run",
     "check:verbs": "vitest run tests/verb-coverage.test.ts",
+    "docs:gen": "tsx scripts/docs-gen.ts",
+    "docs:check": "vitest run tests/docs tests/integration/docs-examples.test.ts",
+    "docs:site:dev": "vitepress dev docs-site",
+    "docs:site:build": "vitepress build docs-site",
     "prepublishOnly": "pnpm build"
   },
   "dependencies": {
@@ -35,7 +39,9 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.15.21",
     "tsup": "^8.5.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.8.3",
+    "vitepress": "^1.6.3",
     "vitest": "^3.1.4"
   }
 }

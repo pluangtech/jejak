@@ -1,0 +1,16 @@
+{
+  "verbs": [{ "name": "init", "status": "shipped", "page": "init.md" }],
+  "concepts": [
+    {
+      "id": "shadow-branch",
+      "title": "The shadow branch",
+      "status": "shipped",
+      "page": "concepts/shadow-branch.md",
+      "sources": [
+        "src/shadow/ShadowRepository.ts",
+        "src/shadow/constants.ts",
+        "src/shadow_branch.ts"
+      ]
+    }
+  ]
+}

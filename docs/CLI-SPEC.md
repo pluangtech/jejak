@@ -4,6 +4,11 @@ Living spec for user-facing commands and journeys. **Implementation tracking:** 
 
 **Design sources:** [README.md](../README.md) · [ARCHITECTURE.md §6](ARCHITECTURE.md#6-cli-v01) · [DESIGN-LLD.md §16](DESIGN-LLD.md#16-cli)
 
+> **User docs vs this spec.** This file is the **behaviour contract** (dev-facing). Task-oriented
+> docs for end users live in [`docs/user/`](user/) (guide, per-verb pages, concept explanations,
+> and an auto-generated [`commands.md`](user/commands.md)). The two must not contradict; user docs
+> are guarded by `pnpm docs:check`. See [IMPLEMENTATION-ORDER.md §4.5](IMPLEMENTATION-ORDER.md).
+
 | Status | Meaning |
 |---|---|
 | `spec` | Written; drives implementation |

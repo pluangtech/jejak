@@ -67,9 +67,12 @@ Each execution item (3+) follows the same loop:
 | **Test (automated)** | `pnpm test`, `pnpm lint`, `pnpm typecheck` — CI must pass | Agent |
 | **Deploy** | `pnpm build && pnpm link --global` (or equivalent) so the test project sees the new build | Agent |
 | **Test (real)** | Run the item's **Test project checklist** in a live repo | Agent provides commands; user runs them |
+| **Docs** | Add/update the item's `docs/user/` page(s) and run `pnpm docs:gen` (see item 4.5) | Agent |
 | **Record** | Fill in **Results / notes** — what worked, what broke, commands run | Agent + user |
 
 **No smoking.** Automated smoke tests guard regressions; they do **not** mark an item done. An item is done only when the test-project checklist passes.
+
+**Docs are part of done.** Any item that ships or changes user-facing behavior is not done until its `docs/user/` page is updated and `pnpm docs:gen` is clean — enforced by `tests/docs-coverage.test.ts` (see item 4.5). This is the mechanism that keeps user docs from drifting.
 
 **Rollback semantics.** If automated tests OR the test-project checklist fail at any step → item status reverts to `in_progress`. **Never mark `done` with any red step.** If repeated failure (≥2 cycles) indicates wrong scope or missing dependency, split the item or escalate to user before continuing.
 
@@ -383,6 +386,78 @@ Write stripped sessions to `refs/heads/jejak/sessions/v1` without touching the w
 5. `git status` clean (shadow ref write does not touch working tree)
 
 (Note: `jejak _dev {write,read}-fixture` is a hidden dev/test subcommand under `src/dev/write_fixture.ts` — not a public verb.)
+
+**Results / notes:**
+- 
+
+---
+
+## 4.5 User-facing documentation layer  ← **NEXT TASK**
+
+**Status:** `in_progress` — Tiers 1–4 implemented (generate / guard / audit / publish)  
+**Plan:** [plans/DOCS-IMPLEMENTATION-PLAN.md](plans/DOCS-IMPLEMENTATION-PLAN.md) (validated via `/validate-plan`, 0 GAPs)  
+**Depends on:** 4 (a shipped verb to document); informs every later item  
+**Verbs touched:** none new — establishes *where/how* we document user-facing behavior  
+**Why now:** lock the documentation layer before more features land, so each feature ships
+its docs instead of having them reconstructed later. (Init, item 4, is the first thing to document.)
+
+User docs are for **people who use jejak**. They are distinct from the internal design docs
+(`DESIGN-LLD`, `ARCHITECTURE`, this file) and from the dev-facing `CLI-SPEC` (behaviour
+contracts). This item builds the home for them and the guardrail that keeps them current.
+
+**Where (markdown-in-repo + a dev-only published site):**
+- `docs/user/` — single source of truth for user docs (committed; [Diátaxis](https://diataxis.fr) layout):
+  - `README.md` — index + 5-minute getting-started.
+  - `<verb>.md` — one page per shipped verb (`init.md`, later `setup.md`, …).
+  - `concepts/<id>.md` — explanation pages (e.g. `concepts/shadow-branch.md`): what it is, why it
+    exists, how to use it, examples, third-party links.
+  - `guides/` — task-oriented how-tos (land with the features they describe).
+  - `commands.md` — **auto-generated** command reference (never hand-edited).
+  - `registry.json` — **single manifest**: verbs + concepts, each with `status` and (for concepts)
+    the `sources` they're derived from.
+- `docs-site/` — **dev-only** [VitePress](https://vitepress.dev) site rendering `docs/user/`
+  directly (`srcDir`, no copies). Excluded from the npm package; Pages workflow scaffolded + disabled.
+
+> **Locked-decision change:** this supersedes the original "no doc-site tooling in v0.1" — VitePress
+> is now included (dev-only). Rationale: [plans/DOCS-IMPLEMENTATION-PLAN.md](plans/DOCS-IMPLEMENTATION-PLAN.md) §6, §11.
+
+**How we capture it (process):**
+- Source-of-truth split: behaviour contracts stay in `CLI-SPEC` (dev); `docs/user/` is
+  task-oriented prose + examples for end users. They must not contradict.
+- Every item that ships/changes user-facing behaviour updates its `docs/user/` page as part
+  of *Done when* — now also encoded in **Modus operandi §3** ("Docs are part of done").
+
+**How we keep it up to date (automated guardrails — mirror the existing verb-coverage pattern):**
+- `pnpm docs:gen` — script that renders `docs/user/commands.md` from the live commander
+  program (`createProgram()` → per-command help), so the reference can't drift from the CLI.
+- `tests/docs-coverage.test.ts` — CI guard that (a) every **shipped** public verb has a
+  `docs/user/` page/section, and (b) `docs/user/commands.md` matches a fresh `docs:gen`
+  (fails if stale) — exactly how `scripts/expected-verbs.json` is checked today.
+
+**Done when:**
+- [x] `docs/user/README.md` (getting-started) + `docs/user/init.md` (the one shipped verb)
+- [x] `docs/user/concepts/shadow-branch.md` — first concept page (bound + source-hashed)
+- [x] `pnpm docs:gen` + generated `docs/user/commands.md` (rendered from the live commander program)
+- [x] `docs/user/registry.json` single manifest (verbs + concepts)
+- [x] `tests/docs/docs-coverage.test.ts` green — verb + concept coverage, reference freshness,
+      source-binding freshness, internal-link check
+- [x] `tests/integration/docs-examples.test.ts` green — `<!-- run -->` examples execute (exit-0 asserted)
+- [x] `docs-drift` skill + committed `.claude/settings.json` **Stop** hook (Tier 3 audit)
+- [x] `docs-site/` VitePress (dev-only) + `docs:site:{dev,build}`; `.github/workflows/docs.yml` disabled
+- [x] CI runs the docs guards (`pnpm test` + a `docs:gen` freshness step)
+- [x] Modus operandi §3 "Docs are part of done" in force
+- [ ] Test project checklist below passes (user verification)
+
+> **Not a self-capture violation.** The committed `.claude/settings.json` adds a **docs** Stop hook
+> (`pnpm docs:check`), not a jejak capture hook — it never registers `jejak _hook …`, writes
+> `.jejak/`, or touches the shadow ref. The [§0 no-self-capture invariant](#no-self-capture-invariant)
+> still holds.
+
+**Test project checklist:**
+1. `pnpm docs:gen` → `docs/user/commands.md` regenerates with **no** diff
+2. Delete a shipped verb's doc section → `pnpm test` **fails** (guard works) → restore
+3. A new reader follows `docs/user/README.md` end-to-end: `jejak init` in the test project
+   reaches the `Next: jejak setup` hand-off with no missing steps
 
 **Results / notes:**
 - 
