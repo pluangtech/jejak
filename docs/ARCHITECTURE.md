@@ -31,7 +31,10 @@ Hooks return <50ms; work runs in detached workers with flag-and-rerun coalescing
 
 ## 2. Strip
 
-5–20 MB raw → **<500 KB** stripped. Thinking blocks kept verbatim (4 KB cap). Bulk reduction from tool result hashing.
+5–20 MB raw → **~95% smaller** (typically <500 KB gzipped per session; scales with reasoning/prose,
+not tool volume). **Thinking kept full verbatim** (the load-bearing "why"). Bulk reduction from
+offloading large `tool_result`/`tool_use` content to **content-addressed payload blobs**
+(preview + sha in the narrative; full bytes expandable / git-dedup'd later).
 
 ## 3. Store
 

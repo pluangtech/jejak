@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { devStrip } from "../dev/strip.js";
 import { notImplemented } from "../stub.js";
 
 /** Register the hidden `_hook` and `_dev` command groups. */
@@ -14,9 +15,29 @@ export function registerInternalCommands(program: Command): void {
   dev
     .command("strip")
     .description("Strip a raw JSONL transcript (item 3)")
-    .option("--resume-from <offset>", "Resume strip from byte offset")
     .argument("<path>", "Path to raw JSONL")
-    .action(() => notImplemented(3, "§8"));
+    .option("--resume-from <offset>", "Resume strip from byte offset")
+    .option("--strip-thinking", "Redact thinking blocks")
+    .option("--payloads-dir <dir>", "Write offloaded payloads to <dir>/<sha>")
+    .action(
+      async (
+        path: string,
+        o: { resumeFrom?: string; stripThinking?: boolean; payloadsDir?: string },
+      ) => {
+        const n = o.resumeFrom != null ? Number(o.resumeFrom) : Number.NaN;
+        try {
+          await devStrip({
+            path,
+            resumeFrom: Number.isFinite(n) ? n : undefined,
+            stripThinking: Boolean(o.stripThinking),
+            payloadsDir: o.payloadsDir,
+          });
+        } catch (e) {
+          console.error(e instanceof Error ? e.message : String(e));
+          process.exit(1);
+        }
+      },
+    );
   dev
     .command("write-fixture")
     .description("Write a test fixture blob (item 4)")

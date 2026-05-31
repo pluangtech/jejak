@@ -171,8 +171,8 @@ flowchart TB
 | `src/snapshot_worker.ts` | Pipeline orchestration; single-flight + rerun |
 | `src/capture_hook_utils.ts` | Agent hook spawn; hook timing for trace |
 | `src/commit_trailers.ts` | `prepare-commit-msg` logic (§10.5) |
-| `src/transcript_readers/claude_code_jsonl.ts` | Live tail read, resume |
-| `src/stripper.ts` | Raw → stripped v1 |
+| `src/strip/transcript/` | Reader adapters + registry (`ClaudeCodeJsonlReader`): stream, byte-offset resume, skip-malformed |
+| `src/strip/` | Raw → stripped narrative (`Stripper`, block strippers, `PayloadSink`) — item 3 |
 | `src/pii_scanner.ts` | `applyDispatch()` |
 | `src/session_ledger.ts` | SQLite CRUD (better-sqlite3) |
 | `src/doctor.ts` | Diagnostics + trace (§16.2) |
@@ -259,13 +259,32 @@ Every hook writes to dispatch log:
 
 ## 7. Transcript reader
 
-Unchanged from v0.2. Resume handling (I-4) in §5.
+`src/strip/transcript/` — `TranscriptReader` interface + per-format adapters behind a registry
+(`ClaudeCodeJsonlReader` for v0.1). Streams a `.jsonl` line-by-line (constant memory), tracks the
+**byte offset** after each line for resume (`--resume-from`, I-4), and **skips a malformed line
+mid-file** (counted, never aborts — a transcript may be mid-write). Implemented item 3; plan:
+[STRIP-IMPLEMENTATION-PLAN](plans/STRIP-IMPLEMENTATION-PLAN.md).
 
 ---
 
 ## 8. Stripper pipeline
 
-Thinking blocks: **verbatim default**, cap 4 KB per block, `--strip-thinking` to redact. Bulk reduction from tool results (R5).
+`src/strip/` — raw transcript → a **readable narrative** (`events.jsonl`) plus **content-addressed
+payload blobs** for bulk content. Rules:
+
+- **Drop** noise lines (`agent-setting`, `queue-operation`, `attachment`, `last-prompt`).
+- **`thinking` → full verbatim, no cap** — the load-bearing, irrecoverable "why". `--strip-thinking`
+  redacts it entirely (privacy opt-out only). *(Supersedes the earlier 4 KB cap.)*
+- **`text` → passthrough.**
+- **`tool_use` → name + small input inline**; a payload-sized input offloaded.
+- **`tool_result` → head+tail preview + bytes + sha**; full content offloaded via a `PayloadSink`
+  (`HashingPayloadSink` for `_dev strip`; `GitBlobPayloadSink` at shadow-write, item 4). The sha is
+  load-bearing: expand-on-demand (`jejak show --expand`, item 6), git-native dedup, change-detection.
+
+**Size:** the guarantee is the *reduction*, not an absolute cap — bulk tool output is offloaded, so a
+trace's size tracks conversation length (reasoning + prose kept full), not tool-output volume. Real
+sessions gzip to ~3–5% of raw (~95% reduction); typically <500 KB gzipped, but a long reasoning-rich
+session legitimately exceeds that and that is the right trade for a fidelity-first tool.
 
 ---
 

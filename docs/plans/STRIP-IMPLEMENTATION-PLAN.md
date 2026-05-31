@@ -7,7 +7,7 @@
 
 Raw Claude Code transcripts are large (a 40-line session ≈ 244 KB; real sessions reach
 **5–20 MB**), and the bulk is tool output. Item 3 turns a raw `.jsonl` transcript into a
-**readable narrative** (`events.jsonl`, `<500 KB`) plus **content-addressed payload blobs** for
+**readable narrative** (`events.jsonl`, ~95% smaller) plus **content-addressed payload blobs** for
 the heavy parts — with a stable, golden-tested format, *before* any git I/O exists.
 
 - **Tracks:** [IMPLEMENTATION-ORDER §3](../IMPLEMENTATION-ORDER.md) · **Design:** [DESIGN-LLD §7 (reader), §8 (stripper)](../DESIGN-LLD.md) · [ARCHITECTURE](../ARCHITECTURE.md)
@@ -190,8 +190,10 @@ transcript may be mid-write. Each event is independently emittable → valid JSO
 | `tool_use` | keep `name`; `input` inline if `≤ PAYLOAD_THRESHOLD`, else preview+sha via sink |
 | `tool_result` | inline if `≤ PAYLOAD_THRESHOLD`, else **head+tail preview + bytes + sha** via sink |
 
-`events.jsonl` (the narrative) targets `<500 KB` — a **test assertion**, achieved because heavy
-payloads are offloaded, not because reasoning is truncated.
+**Size guarantee = reduction, not a cap.** Because bulk tool output is offloaded, the gzipped
+narrative tracks conversation length, not tool volume (real sessions ≈ 3–5% of raw). Asserted as
+gz ≤ ~10% of raw on a tool-heavy fixture; thinking is kept full, so a long reasoning-rich session
+legitimately exceeds the ~500 KB-gz guideline (fidelity-first). *(Revised from a hard <500 KB cap.)*
 
 ---
 
@@ -220,8 +222,8 @@ Internal/hidden — no `docs/user/` page (docs-coverage guards only public verbs
   long thinking + oversized tool_result) → assert events deep-equal `basic.events.jsonl` and the
   payload set (sha→bytes) matches `basic.payloads.json`. **Hand-authored synthetic data — never a
   real transcript** (PII).
-- **Size:** a generated ~5 MB-of-tool_result fixture → `events.jsonl < 500_000` bytes while full
-  thinking is preserved.
+- **Size (reduction ratio):** a generated ~6 MB-of-tool_result fixture → gzipped narrative
+  ≤ 10% of raw, while full thinking (40 KB) is preserved verbatim.
 - `pnpm test` / `lint` / `typecheck` / `docs:gen` (no drift) green.
 
 ---
