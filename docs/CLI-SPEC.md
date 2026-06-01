@@ -50,10 +50,10 @@ Living spec for user-facing commands and journeys. **Implementation tracking:** 
 | `jejak active-session-id` | 5 | shipped | Open session(s) |
 | `jejak log` / `show` / `link` | 6 | shipped (6b) | Browse traces (`--json`; `show --expand` resolves payloads) |
 | `jejak push` / `fetch` | 6 | shipped (6c) | Share traces (client-side merge; PII push hard-gate) |
-| `jejak attach` | 6 | stub | Missed capture recovery |
-| `jejak doctor` / `--trace` | 5/6 | 5: setup checks · 6: `--trace` | Diagnostics |
+| `jejak attach` | 6 | shipped (6d) | Missed capture recovery (3-branch commit link) |
+| `jejak doctor` / `--trace` | 5/6 | shipped (6d full) | Diagnostics; `--trace` = per-hook latency percentiles |
 | `npm update -g` + `jejak setup --force` | 2 | spec | Update CLI + refresh hook scripts |
-| `jejak uninstall` | 6 | stub | Remove hooks; optional `~/.jejak/<repo-hash>/` purge |
+| `jejak uninstall` | 6 | shipped (6d) | Remove hooks; optional `~/.jejak/<repo-hash>/` purge |
 
 ---
 
@@ -190,15 +190,15 @@ self-setup refusal; does **not** create the shadow ref.
 
 ---
 
-### Remaining verbs (stubs — fill in during item 2)
+### Verb status (all v0.1 verbs shipped)
 
 - `jejak status` — shipped (6b)
-- `jejak active-session-id` — item 5 ([DESIGN-LLD §16.5](DESIGN-LLD.md#165-jejak-active-session-id-c-2))
+- `jejak active-session-id` — shipped (item 5, [DESIGN-LLD §16.5](DESIGN-LLD.md#165-jejak-active-session-id-c-2))
 - `jejak log` / `show` / `link` — shipped (6b)
 - `jejak push` / `fetch` — shipped (6c; client-side merge + PII hard-gate)
-- `jejak attach` — item 6 ([DESIGN-LLD §16.4](DESIGN-LLD.md#164-jejak-attach-session-id-ai-1-v3-2))
-- `jejak doctor` / `--trace` — item 5 minimal, item 6 full
-- `jejak uninstall` — item 6
+- `jejak attach` — shipped (6d, [DESIGN-LLD §16.4](DESIGN-LLD.md#164-jejak-attach-session-id-ai-1-v3-2))
+- `jejak doctor` / `--trace` — shipped (6d full diagnostics + per-hook latency percentiles)
+- `jejak uninstall` — shipped (6d)
 
 ---
 

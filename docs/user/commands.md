@@ -119,6 +119,21 @@ Options:
   -h, --help  display help for command
 ```
 
+## `jejak attach`
+
+```text
+Usage: jejak attach [options] <session-id>
+
+Recover a missed capture into the shadow branch
+
+Arguments:
+  session-id  Session ID
+
+Options:
+  --force     Skip the amend confirmation
+  -h, --help  display help for command
+```
+
 ## `jejak doctor`
 
 ```text
@@ -127,18 +142,7 @@ Usage: jejak doctor [options]
 Diagnostics for setup, sync, and capture health
 
 Options:
-  --trace     Verbose diagnostic trace (full diagnostics land in item 6)
-  -h, --help  display help for command
-```
-
-## `jejak attach`
-
-```text
-Usage: jejak attach [options]
-
-Recover a missed capture into the shadow branch
-
-Options:
+  --trace     Per-hook latency percentiles from the dispatch log
   -h, --help  display help for command
 ```
 

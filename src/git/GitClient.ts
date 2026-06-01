@@ -39,6 +39,12 @@ export interface GitClient {
   interpretTrailers(messageFile: string, trailers: string[]): Promise<void>;
   /** Most recent commit carrying a `Jejak-Session: <id>` trailer, or null. */
   findCommitWithTrailer(sessionId: string): Promise<string | null>;
+  /** True if HEAD is detached (not on a branch). False on a normal or unborn branch. */
+  isDetachedHead(): Promise<boolean>;
+  /** Return `message` with `trailers` appended (`git interpret-trailers`, stdin→stdout; pure). */
+  appendTrailers(message: string, trailers: string[]): Promise<string>;
+  /** Amend HEAD's commit message in place (`git commit --amend`); preserves author + tree. */
+  amendHeadMessage(message: string): Promise<void>;
   /**
    * Build a tree using a throwaway index. With `baseTree`, seed the index from it first
    * (read-tree) so `entries` are added on top — the single tree-building seam for seed + upsert.
@@ -203,6 +209,24 @@ export class RealGitClient implements GitClient {
     if (r.code !== 0) return null; // no commits / unborn HEAD
     const sha = r.stdout.trim();
     return sha.length > 0 ? sha : null;
+  }
+
+  async isDetachedHead(): Promise<boolean> {
+    // `symbolic-ref -q HEAD` exits 0 on a branch (incl. unborn), non-zero when detached.
+    const r = await runGit(["symbolic-ref", "-q", "HEAD"], { cwd: this.cwd });
+    return r.code !== 0;
+  }
+
+  async appendTrailers(message: string, trailers: string[]): Promise<string> {
+    if (trailers.length === 0) return message;
+    const trailerArgs = trailers.flatMap((t) => ["--trailer", t]);
+    return this.run(["interpret-trailers", ...trailerArgs], message);
+  }
+
+  async amendHeadMessage(message: string): Promise<void> {
+    // -F - reads the new message from stdin; --amend keeps author + tree; --allow-empty so a
+    // message-only amend (no tree change, e.g. an empty commit) never fails.
+    await this.run(["commit", "--amend", "--allow-empty", "-F", "-"], message);
   }
 
   async writeTreeFromIndex(entries: TreeEntry[], baseTree?: string): Promise<string> {

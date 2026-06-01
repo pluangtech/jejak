@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 describe("runDoctor (minimal)", () => {
-  it("reports ok when hooks + ledger are present", () => {
+  it("reports ok when hooks + ledger are present", async () => {
     mkdirSync(join(dir, ".claude"), { recursive: true });
     writeFileSync(
       join(dir, ".claude/settings.json"),
@@ -34,14 +34,14 @@ describe("runDoctor (minimal)", () => {
     writeFileSync(lp.ledgerDb, "");
 
     const reporter = new CollectingReporter();
-    const result = runDoctor({ repoRoot: dir, reporter, home });
+    const result = await runDoctor({ repoRoot: dir, reporter, home });
     expect(result.ok).toBe(true);
     expect(reporter.text()).toContain("[ok] agent hooks");
   });
 
-  it("flags missing pieces", () => {
+  it("flags missing pieces", async () => {
     const reporter = new CollectingReporter();
-    const result = runDoctor({ repoRoot: dir, reporter, home });
+    const result = await runDoctor({ repoRoot: dir, reporter, home });
     expect(result.ok).toBe(false);
     expect(reporter.text()).toContain("MISSING");
   });

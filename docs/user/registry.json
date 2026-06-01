@@ -7,7 +7,10 @@
     { "name": "link", "status": "shipped", "page": "link.md" },
     { "name": "status", "status": "shipped", "page": "status.md" },
     { "name": "push", "status": "shipped", "page": "push.md" },
-    { "name": "fetch", "status": "shipped", "page": "fetch.md" }
+    { "name": "fetch", "status": "shipped", "page": "fetch.md" },
+    { "name": "attach", "status": "shipped", "page": "attach.md" },
+    { "name": "doctor", "status": "shipped", "page": "doctor.md" },
+    { "name": "uninstall", "status": "shipped", "page": "uninstall.md" }
   ],
   "concepts": [
     {

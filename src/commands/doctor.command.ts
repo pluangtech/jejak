@@ -9,8 +9,8 @@ export const doctorCommand: CommandModule = {
     program
       .command("doctor")
       .description("Diagnostics for setup, sync, and capture health")
-      .option("--trace", "Verbose diagnostic trace (full diagnostics land in item 6)")
-      .action(async () => {
+      .option("--trace", "Per-hook latency percentiles from the dispatch log")
+      .action(async (opts: { trace?: boolean }) => {
         const git = new RealGitClient(process.cwd());
         let repoRoot: string;
         try {
@@ -19,7 +19,7 @@ export const doctorCommand: CommandModule = {
           console.error("jejak: not a git repository");
           process.exit(1);
         }
-        runDoctor({ repoRoot, reporter: new ConsoleReporter() });
+        await runDoctor({ repoRoot, reporter: new ConsoleReporter(), git, trace: opts.trace });
       });
   },
 };

@@ -71,6 +71,18 @@ export class FakeGitClient implements GitClient {
   async findCommitWithTrailer(): Promise<string | null> {
     return this.commitForTrailer;
   }
+  detached = false;
+  async isDetachedHead(): Promise<boolean> {
+    return this.detached;
+  }
+  async appendTrailers(message: string, trailers: string[]): Promise<string> {
+    const block = trailers.join("\n");
+    return message.endsWith("\n") ? `${message}${block}\n` : `${message}\n\n${block}\n`;
+  }
+  amendedMessages: string[] = [];
+  async amendHeadMessage(message: string): Promise<void> {
+    this.amendedMessages.push(message);
+  }
   async writeTreeFromIndex(_entries: TreeEntry[], _baseTree?: string): Promise<string> {
     return "tree1";
   }

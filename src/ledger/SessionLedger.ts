@@ -80,6 +80,13 @@ export class SessionLedger {
     return rows.map((r) => r.session_id);
   }
 
+  /** Full rows for every open session, oldest first (for `jejak doctor` staleness checks). */
+  openRows(): SessionRow[] {
+    return this.db
+      .prepare("SELECT * FROM sessions WHERE status='open' ORDER BY started_at")
+      .all() as SessionRow[];
+  }
+
   /** Most recently started open session (for `jejak active-session-id`). */
   mostRecentOpen(): string | null {
     const row = this.db

@@ -43,4 +43,15 @@ describe("failOpen", () => {
     ).resolves.toBeUndefined();
     expect(logs.some((l) => l.includes("error"))).toBe(true);
   });
+
+  it("emits one structured JSON line per dispatch (ts/hook/duration; error on failure)", async () => {
+    await failOpen({ repoRoot: dir, hook: "stop", sessionId: "s1", log }, async () => {
+      throw new Error("boom");
+    });
+    expect(logs).toHaveLength(1);
+    const rec = JSON.parse(logs[0]);
+    expect(rec).toMatchObject({ hook: "stop", session_id: "s1", error: "boom" });
+    expect(typeof rec.ts).toBe("string");
+    expect(typeof rec.duration_ms).toBe("number");
+  });
 });

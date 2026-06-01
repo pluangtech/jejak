@@ -11,18 +11,20 @@ export async function failOpen(
 ): Promise<void> {
   if (isDisabled(opts.repoRoot)) return;
   const start = Date.now();
+  let error: string | undefined;
   try {
     await fn();
   } catch (err) {
-    opts.log(
-      `${opts.hook} error (${opts.sessionId}): ${err instanceof Error ? err.message : String(err)}`,
-    );
+    error = err instanceof Error ? err.message : String(err);
   } finally {
+    // One structured line per dispatch (parsed by `jejak doctor` / `--trace` for errors + timings).
     opts.log(
       JSON.stringify({
+        ts: new Date().toISOString(),
         hook: opts.hook,
         session_id: opts.sessionId,
         duration_ms: Date.now() - start,
+        ...(error !== undefined ? { error } : {}),
       }),
     );
   }

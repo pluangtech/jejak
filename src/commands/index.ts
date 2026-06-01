@@ -1,5 +1,6 @@
 import type { CommandModule } from "./CommandModule.js";
 import { activeSessionIdCommand } from "./active-session-id.command.js";
+import { attachCommand } from "./attach.command.js";
 import { doctorCommand } from "./doctor.command.js";
 import { fetchCommand } from "./fetch.command.js";
 import { initCommand } from "./init.command.js";
@@ -9,26 +10,9 @@ import { pushCommand } from "./push.command.js";
 import { setupCommand } from "./setup.command.js";
 import { showCommand } from "./show.command.js";
 import { statusCommand } from "./status.command.js";
-import { type StubSpec, makeStubCommand } from "./stubCommand.js";
+import { uninstallCommand } from "./uninstall.command.js";
 
-/** Not-yet-implemented verbs. Graduating one = move it to its own *.command.ts and drop it here. */
-const STUB_SPECS: StubSpec[] = [
-  {
-    name: "attach",
-    description: "Recover a missed capture into the shadow branch",
-    item: 6,
-    lldSection: "§16",
-  },
-  {
-    name: "uninstall",
-    description: "Remove hooks; optional local state purge",
-    item: 6,
-    lldSection: "§16",
-    configure: (c) => c.option("--purge", "Remove ~/.jejak/<repo-hash>/ state"),
-  },
-];
-
-/** The public command registry, in display order (init first). */
+/** The public command registry, in display order (init first). Every v0.1 verb is now live. */
 export const PUBLIC_COMMANDS: CommandModule[] = [
   initCommand,
   setupCommand,
@@ -39,8 +23,9 @@ export const PUBLIC_COMMANDS: CommandModule[] = [
   linkCommand,
   pushCommand,
   fetchCommand,
+  attachCommand,
   doctorCommand,
-  ...STUB_SPECS.map(makeStubCommand),
+  uninstallCommand,
 ];
 
 /** Public verb names — must match scripts/expected-verbs.json (verb-coverage test). */
