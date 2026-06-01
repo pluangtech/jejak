@@ -28,6 +28,17 @@ A separate orphan ref is the lightest way to get all three. Storing traces as or
 your branch would pollute history; storing them outside git would lose the "clone and you have it"
 property.
 
+Inside the ref, every developer owns a separate subtree — which is what lets a whole team push to
+the same branch without merge conflicts:
+
+```mermaid
+flowchart TD
+    REF["refs/heads/jejak/sessions/v1<br/>orphan · never checked out"]
+    REF --> S["sessions/"]
+    S --> A["alice/3f/{session-id}/<br/>events.jsonl.gz · meta.json"]
+    S --> B["bob/9c/{session-id}/<br/>events.jsonl.gz · meta.json"]
+```
+
 ## How to use it
 
 You rarely touch it directly — `jejak` commands manage it for you:

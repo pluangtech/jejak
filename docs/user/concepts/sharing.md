@@ -23,6 +23,17 @@ pure plumbing instead:
 
 Your branch and working tree are never involved, so syncing traces can't disturb your code.
 
+```mermaid
+flowchart LR
+    L["Local shadow ref"] -->|"1 · fetch"| RT["remote-tracking ref"]
+    RT -->|"behind?"| FF["fast-forward"]
+    RT -->|"diverged?"| MT["git merge-tree<br/>(in memory)"]
+    MT --> CT["git commit-tree"]
+    CT -->|"compare-and-swap update-ref"| L
+    FF --> L
+    L -->|"2 · push (retry if beaten)"| ORIGIN[("origin")]
+```
+
 ## Why it's conflict-free
 
 Each developer writes to a **disjoint partition** — `sessions/<your-handle>/…` — so two people's

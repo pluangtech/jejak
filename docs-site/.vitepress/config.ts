@@ -1,3 +1,4 @@
+import { withMermaid } from "vitepress-plugin-mermaid";
 import { defineConfig } from "vitepress";
 
 // Dev-only docs site. It renders docs/user/ DIRECTLY (srcDir below) — no copies, so the published
@@ -7,7 +8,10 @@ import { defineConfig } from "vitepress";
 // NOTE: the built site uses absolute asset paths (/assets/...). View it via `pnpm docs:site:dev`
 // or `pnpm docs:site:preview` (served at the server root) — opening dist/*.html as a file:// or
 // through an IDE static server at a sub-path will 404 the CSS/JS.
-export default defineConfig({
+//
+// withMermaid() wraps the config so ```mermaid fenced blocks in docs/user/ render as live diagrams
+// (GitHub renders them natively regardless). Adds devDeps: vitepress-plugin-mermaid + mermaid.
+export default withMermaid(defineConfig({
   title: "jejak",
   description: "Capture the trail your AI coding agents leave behind",
   srcDir: "../docs/user",
@@ -20,6 +24,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: "Guide", link: "/" },
+      { text: "Architecture", link: "/architecture" },
       { text: "Commands", link: "/commands" },
     ],
     sidebar: [
@@ -27,12 +32,17 @@ export default defineConfig({
         text: "Getting started",
         items: [
           { text: "User guide", link: "/" },
+          { text: "Architecture", link: "/architecture" },
           { text: "jejak init", link: "/init" },
         ],
       },
       {
         text: "Concepts",
-        items: [{ text: "The shadow branch", link: "/concepts/shadow-branch" }],
+        items: [
+          { text: "How capture works", link: "/concepts/capture" },
+          { text: "The shadow branch", link: "/concepts/shadow-branch" },
+          { text: "Sharing traces", link: "/concepts/sharing" },
+        ],
       },
       {
         text: "Reference",
@@ -40,4 +50,4 @@ export default defineConfig({
       },
     ],
   },
-});
+}));

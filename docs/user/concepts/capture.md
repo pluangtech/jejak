@@ -20,6 +20,24 @@ Hooks are **fail-open and fast**: they return in well under a second (the heavy 
 detached background worker), and if anything goes wrong they exit cleanly — capturing a session
 never blocks Claude Code or your commit.
 
+```mermaid
+sequenceDiagram
+    autonumber
+    participant CC as Claude Code
+    participant H as jejak hook (fast)
+    participant W as Background worker
+    participant SR as Shadow branch
+
+    CC->>H: SessionStart
+    H->>H: record session as open
+    CC->>H: Stop (after each turn)
+    H-->>W: snapshot transcript so far
+    W->>SR: write events.jsonl.gz + meta.json
+    CC->>H: SessionEnd
+    H-->>W: final snapshot
+    Note over H,SR: any commit you made is linked to the session
+```
+
 ## What gets stored, and where
 
 Each snapshot strips the raw transcript into a compact narrative and writes it to the

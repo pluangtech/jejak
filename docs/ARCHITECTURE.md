@@ -2,6 +2,72 @@
 
 High-level architecture for Jejak v0.1. Detail: [DESIGN-LLD.md](DESIGN-LLD.md) (v0.4). Reviews: [REVIEW-LLD-v3.md](REVIEW-LLD-v3.md).
 
+> New here? Read this top-to-bottom — the two diagrams below are the whole mental model. The
+> diagrams render on GitHub and on the docs site (`pnpm docs:site:dev`).
+
+## At a glance
+
+Everything jejak does is one left-to-right pipeline. A Claude Code session log goes in; a compact,
+shareable trace on a hidden git branch comes out.
+
+```mermaid
+flowchart LR
+    CC(["Claude Code<br/>session.jsonl"])
+
+    subgraph PIPE["jejak pipeline"]
+        direction LR
+        CAP["1 · Capture<br/>src/hooks + src/capture"]
+        STR["2 · Strip<br/>src/strip"]
+        STO["3 · Store<br/>src/shadow"]
+        CAP --> STR --> STO
+    end
+
+    CC -->|"hooks fire"| CAP
+    STO -->|"4 · Share — push / fetch<br/>src/sync"| REMOTE[("origin<br/>shadow ref")]
+    STO -->|"read back — log · show · link<br/>src/read"| YOU["You, months later,<br/>asking why the code looks this way"]
+```
+
+| Stage | Question it answers | Where in `src/` |
+|---|---|---|
+| **Capture** | How do we get the session log off the laptop without slowing the agent? | `hooks/`, `capture/` |
+| **Strip** | What's worth keeping, and what's recoverable noise? | `strip/` |
+| **Store** | Where do traces live so they travel with the repo but never pollute it? | `shadow/` |
+| **Share** | How do ten engineers pool traces without merge conflicts? | `sync/` |
+| **Read** | How do you get the story back out? | `read/` |
+
+## Code map
+
+How the folders under `src/` group by role. **Start at `cli.ts`** and follow the arrows.
+
+```mermaid
+flowchart TB
+    subgraph ENTRY["Entry + wiring"]
+        CLI["cli.ts<br/>(commander program)"]
+        CMD["commands/*.command.ts<br/>(one thin file per verb)"]
+        APP["app/AppDeps.ts<br/>(DI root: git · prompter · reporter)"]
+    end
+    subgraph STAGES["Pipeline stages"]
+        HOOKS["hooks/ + capture/"]
+        STRIP["strip/"]
+        SHADOW["shadow/"]
+        SYNC["sync/"]
+        READ["read/"]
+    end
+    subgraph SUPPORT["Shared services"]
+        GIT["git/ (GitClient seam)"]
+        PII["pii/ (redaction + push gate)"]
+        PRICING["pricing/ (cost table)"]
+        LEDGER["ledger/ (open-session state)"]
+    end
+    CLI --> CMD --> APP
+    CMD --> STAGES
+    STAGES --> SUPPORT
+```
+
+The key pattern: **commands are thin**. A `*.command.ts` file only parses flags and calls a
+`run*()` function in the feature module — so the logic is testable without `commander` or a TTY. See
+[§6](#_6-cli-v0-1) for the wiring.
+
 ## 1. Capture
 
 Claude Code JSONL at `~/.claude/projects/<project-id>/<session-id>.jsonl`.
@@ -23,6 +89,33 @@ Claude Code JSONL at `~/.claude/projects/<project-id>/<session-id>.jsonl`.
 | `prepare-commit-msg` | Append `Jejak-Session:` trailer(s) for all open sessions (supports concurrent sessions) |
 
 Hooks return <50ms; work runs in detached workers with flag-and-rerun coalescing.
+
+The lifecycle — what fires when, from a session opening to a trace landing on the shadow ref while
+your commit gets anchored to it:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant CC as Claude Code
+    participant H as Agent hook (fast)
+    participant W as Detached worker
+    participant SR as Shadow ref
+    participant G as Your git commit
+
+    CC->>H: SessionStart
+    H->>H: open / resume ledger
+    CC->>H: Stop (after each turn)
+    H-->>W: spawn (flag-and-rerun coalescing)
+    W->>W: strip transcript
+    W->>SR: write events.jsonl.gz + meta.json
+    Note over G: meanwhile you `git commit`
+    G->>G: prepare-commit-msg appends<br/>Jejak-Session trailer(s)
+    CC->>H: SessionEnd
+    H-->>W: final snapshot (detached)
+```
+
+The agent hooks (left) and the git hook (`prepare-commit-msg`, right) run independently — that's why
+a trace and the commit it produced get linked without either one waiting on the other.
 
 ### Fallbacks
 
@@ -54,7 +147,19 @@ index/<dev-handle>/by-commit.ndjson    ← accelerator, not authoritative
 
 **Compression (v0.1):** gzip via `node:zlib`; stored as `events.jsonl.gz`. v0.2 may switch to zstd (`.zst`) if dogfood shows size pressure.
 
-Hash-sharding within per-writer namespace: balanced tree, no archival needed.
+Hash-sharding within per-writer namespace: balanced tree, no archival needed. Each developer owns a
+disjoint subtree — which is what makes concurrent pushes conflict-free (see §4):
+
+```mermaid
+flowchart TD
+    REF["refs/heads/jejak/sessions/v1<br/>orphan · never checked out"]
+    REF --> S["sessions/"]
+    REF --> I["index/ (accelerator, rebuildable)"]
+    S --> A["alice/3f/{session}/<br/>events.jsonl.gz · meta.json"]
+    S --> B["bob/9c/{session}/<br/>events.jsonl.gz · meta.json"]
+    I --> IA["alice/by-commit.ndjson"]
+    I --> IB["bob/by-commit.ndjson"]
+```
 
 ### Commit anchoring (Δ-1)
 
@@ -85,6 +190,22 @@ and the session is kept (marked `captured-with-blocks`), never silently dropped.
 Layers: PII scan, local staging, push hard-gate (refuses if the catalog won't load).
 
 ## 6. CLI (v0.1)
+
+How a verb is wired — the same shape for all twelve. `cli.ts` iterates the `PUBLIC_COMMANDS`
+registry; each command file is thin and delegates to a `run*()` in its feature module:
+
+```mermaid
+flowchart LR
+    U(["$ jejak status --json"]) --> CLI["cli.ts<br/>commander program"]
+    CLI --> REG["commands/index.ts<br/>PUBLIC_COMMANDS registry"]
+    REG --> CM["status.command.ts<br/>thin: parse flags"]
+    CM --> RUN["read/status.ts<br/>runStatus() — the logic"]
+    APP["app/AppDeps<br/>git · prompter · reporter"] -. injected .-> CM
+```
+
+To add a verb: write `foo.command.ts` (implementing `CommandModule`), add it to `commands/index.ts`,
+and put the logic in a feature module. The verb-coverage test (`scripts/expected-verbs.json`) keeps
+the registry, docs, and `--help` in sync.
 
 ```
 jejak init [--agent <id>] / setup [--claude-code] [--force]
