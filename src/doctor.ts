@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { Reporter } from "./app/AppDeps.js";
 import { isDisabled } from "./hooks/disabled.js";
 import { localPaths } from "./localstate/paths.js";
+import { loadCatalog } from "./pii/loadCatalog.js";
 
 export interface DoctorDeps {
   repoRoot: string;
@@ -37,6 +38,7 @@ export function runDoctor(deps: DoctorDeps): { ok: boolean } {
     { name: "agent hooks in .claude/settings.json", ok: agentWired },
     { name: "git hook .git/hooks/prepare-commit-msg", ok: gitHookWired },
     { name: "session ledger present", ok: existsSync(lp.ledgerDb) },
+    { name: "PII catalog ready (push gate)", ok: loadCatalog(repoRoot).ok },
   ];
   const stagingCount = existsSync(lp.staging) ? readdirSync(lp.staging).length : 0;
 

@@ -92,12 +92,17 @@ describe("SnapshotWorker", () => {
     expect(staging.read("s1")).toBe("");
   });
 
-  it("blocked scanner: advances offset, marks captured-with-blocks, does not write the ref", async () => {
-    const blocking: PiiScanner = { scan: () => ({ blocked: true, scrubbed: "" }) };
+  it("block finding: redacts, still writes (scrubbed), marks captured-with-blocks", async () => {
+    const blocking: PiiScanner = {
+      scan: (content) => ({
+        scrubbed: content,
+        findings: [{ type: "aws-key", severity: "block", count: 1 }],
+      }),
+    };
     await new SnapshotWorker(makeDeps(blocking)).run("s1", { final: true });
     const row = ledger.get("s1");
     expect(row?.status).toBe("captured-with-blocks");
     expect(row?.last_offset).toBeGreaterThan(0);
-    expect(git.commits.length).toBe(0); // nothing written to the shared ref
+    expect(git.commits.length).toBeGreaterThan(0); // scrubbed session IS written (not dropped)
   });
 });

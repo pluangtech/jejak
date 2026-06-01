@@ -1,22 +1,31 @@
+export type PiiSeverity = "block" | "warn";
+
+/** One pattern's redaction tally (no secret values — just type + count). */
+export interface Finding {
+  type: string;
+  severity: PiiSeverity;
+  count: number;
+}
+
 export interface ScanResult {
-  /** True if the content must NOT be written to the shared ref (unrecoverable secret). */
-  blocked: boolean;
-  /** Content with warn-level matches scrubbed (identical to input for the Noop scanner). */
+  /** Content with all matches replaced by `[REDACTED-<type>]`. */
   scrubbed: string;
+  /** What was redacted (types + counts), for meta + doctor. */
+  findings: Finding[];
 }
 
 /**
- * Best-effort secret/PII gate (DESIGN-LLD §9). The capture worker runs `scan` on staged content
- * before the shadow-ref write. Item 5 injects {@link NoopPiiScanner}; item 6 implements the real
- * 6-pattern catalog + `.jejak/pii.yaml` and the push hard-gate.
+ * Best-effort secret/PII gate (DESIGN-LLD §9). Runs on staged content before the shadow-ref write.
+ * v0.1 policy: **redact inline and keep the session** (mark captured-with-blocks) — never store a
+ * secret, never silently drop the session.
  */
 export interface PiiScanner {
   scan(content: string): ScanResult;
 }
 
-/** No-op scanner for item 5 — passes everything through. Capture stays local (never pushed) until item 6. */
+/** Pass-through scanner (tests / explicit opt-out). */
 export class NoopPiiScanner implements PiiScanner {
   scan(content: string): ScanResult {
-    return { blocked: false, scrubbed: content };
+    return { scrubbed: content, findings: [] };
   }
 }

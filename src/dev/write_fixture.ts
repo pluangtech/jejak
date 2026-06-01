@@ -1,6 +1,8 @@
 import { existsSync } from "node:fs";
 import { buildSessionMeta } from "../analytics/aggregate.js";
 import { type GitClient, RealGitClient } from "../git/GitClient.js";
+import { CatalogPiiScanner } from "../pii/CatalogPiiScanner.js";
+import { loadCatalog } from "../pii/loadCatalog.js";
 import { GitBlobPayloadSink } from "../shadow/GitBlobPayloadSink.js";
 import { ShadowRepository } from "../shadow/ShadowRepository.js";
 import { stripTranscript } from "../strip/Stripper.js";
@@ -34,22 +36,28 @@ export async function devWriteFixture(
   // Canonical JSONL: one newline-terminated object per line (matches `_dev strip` output).
   const eventsJsonl = events.map((e) => `${JSON.stringify(e)}\n`).join("");
 
+  // PII gate — same as the capture worker: redact inline, never write a secret to the ref.
+  const repoRoot = await git.repoRoot();
+  const scan = new CatalogPiiScanner(loadCatalog(repoRoot).patterns).scan(eventsJsonl);
+  const hasBlocks = scan.findings.some((f) => f.severity === "block");
+
   const meta = buildSessionMeta(events, {
     sessionId: opts.sessionId,
     handle: opts.handle,
     agent,
-    status: "captured",
+    status: hasBlocks ? "captured-with-blocks" : "captured",
+    redactions: scan.findings.map((f) => ({ type: f.type, count: f.count })),
   });
 
   const { commit, path } = await new ShadowRepository(git).upsert({
     handle: opts.handle,
     sessionId: opts.sessionId,
-    eventsJsonl,
+    eventsJsonl: scan.scrubbed,
     meta,
     payloadEntries: sink.entries,
   });
 
   out(
-    `wrote ${path} (${events.length} events, ${sink.entries.length} payloads) @ ${commit.slice(0, 8)}\n`,
+    `wrote ${path} (${events.length} events, ${sink.entries.length} payloads, ${scan.findings.length} redactions) @ ${commit.slice(0, 8)}\n`,
   );
 }

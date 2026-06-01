@@ -312,13 +312,22 @@ session legitimately exceeds that and that is the right trade for a fidelity-fir
 | 5 | `(SECRET\|TOKEN\|KEY\|PASSWORD\|API_KEY)\s*=\s*['"]?[A-Za-z0-9+/_-]{16,}['"]?` |
 | 6 | JWT-shaped: `eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+` |
 
-**Opt-in (warn/scrub):** email — via `.jejak/pii.yaml`. Org-specific patterns (internal customer ID formats, internal token prefixes) added to `.jejak/pii.yaml` in parallel with dogfood; do not gate launch on full security audit (Q3).
+**Implementation (item 6a):** `src/pii/` — `CatalogPiiScanner` + `loadCatalog`. The 6 built-ins are
+block-severity; email is an opt-in `warn` pattern. **Custom patterns + email opt-in via a zero-dep
+`.jejak/pii.json`** (`{ redactEmail, patterns: [{name, regex, severity}] }`) — *not* `.yaml` (avoids a
+YAML dep; same rationale as the JSON config choice). A bad pii.json keeps the built-ins and flags
+`doctor`'s PII-ready check.
+
+**Block policy (v0.1 — refines step 3 below):** a match is **redacted inline** (`[REDACTED-<type>]`)
+and the session is **kept** (marked `captured-with-blocks`, redaction types+counts in `meta.json`) —
+never store the secret, never silently drop the session. (Earlier "block = write nowhere" loses all
+the session's analytics over one secret; redaction is safer *and* preserves the trace.)
 
 **Staging flow (Path A, Δ-2):**
-1. Stripper output → `~/.jejak/staging/<session-id>/events.jsonl` (local, never pushed)
-2. PII dispatcher runs on staged content
-3. If PII dispatcher uninitialized or `should_block` on unrecoverable content → **block shared-ref write** (hard error)
-4. Scrubbed output → shadow ref write
+1. Stripper output → `~/.jejak/<repo-hash>/staging/<session-id>/events.jsonl` (local, never pushed)
+2. PII scanner runs on staged content → **scrubbed** output
+3. Scrubbed output → shadow ref write (always); block-severity findings flag `captured-with-blocks`
+4. `jejak push` hard-gate: refuses if the catalog couldn't load (the only "uninitialized" case)
 5. **SessionEnd cleanup (C-4):** after successful final shared-ref write, delete `~/.jejak/staging/<session-id>/`. Failed writes leave staging intact for `jejak doctor`.
 
 **Hard gate:** `jejak push` refuses if PII not initialized (§19).

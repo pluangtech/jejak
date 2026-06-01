@@ -4,7 +4,9 @@ import { DetachedWorkerSpawner, type WorkerSpawner } from "../capture/WorkerSpaw
 import { type GitClient, RealGitClient } from "../git/GitClient.js";
 import { SessionLedger } from "../ledger/SessionLedger.js";
 import { localPaths } from "../localstate/paths.js";
-import { NoopPiiScanner, type PiiScanner } from "../pii/PiiScanner.js";
+import { CatalogPiiScanner } from "../pii/CatalogPiiScanner.js";
+import type { PiiScanner } from "../pii/PiiScanner.js";
+import { loadCatalog } from "../pii/loadCatalog.js";
 import { ShadowRepository } from "../shadow/ShadowRepository.js";
 
 /** Everything the hook handlers + worker need, injected so tests use fakes (no real Claude/SQLite-on-disk/spawn). */
@@ -33,7 +35,7 @@ export function createCaptureContext(
     git,
     ledger: new SessionLedger(lp.ledgerDb),
     staging: new StagingStore(repoRoot),
-    scanner: new NoopPiiScanner(),
+    scanner: new CatalogPiiScanner(loadCatalog(repoRoot).patterns),
     shadow: new ShadowRepository(git),
     spawner: new DetachedWorkerSpawner(),
     now: () => new Date().toISOString(),

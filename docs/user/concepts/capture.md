@@ -1,6 +1,6 @@
 ---
 concept: capture
-sources_hash: sha256:5668046fbb5bb367f7128224de1253af6b801466a59de3c2d8b8c43cd34940a7
+sources_hash: sha256:b93a0db5ca451f2fdbb0fde8929586802b36c9873d549778d912859ae1010714
 ---
 
 # How capture works
@@ -30,6 +30,14 @@ Each snapshot strips the raw transcript into a compact narrative and writes it t
 
 Capturing **never touches your working tree** — no staged files, no commits on your branch. Until
 you push (a later release), traces stay entirely on your machine.
+
+## Secrets are redacted
+
+Before anything is written, a best-effort scanner redacts common secrets (AWS keys, private keys,
+`Bearer` tokens, `KEY=…`/`TOKEN=…` assignments, JWTs) to `[REDACTED-<type>]`. The session is still
+kept — minus the secret — and flagged `captured-with-blocks` (visible in `jejak doctor`). Add your
+own patterns or opt into email redaction with a `.jejak/pii.json` file. It's best-effort, not a
+guarantee — treat it as defense-in-depth alongside `.jejakignore` and the push gate.
 
 ## Inspecting and pausing
 

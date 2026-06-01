@@ -19,6 +19,8 @@ export interface SessionMeta {
   cost_usd: number | null;
   pricing_version: string;
   commit_sha?: string;
+  /** PII redactions applied before write (type + count; no values). */
+  redactions?: Array<{ type: string; count: number }>;
 }
 
 export interface SessionMetaInput {
@@ -27,6 +29,7 @@ export interface SessionMetaInput {
   agent: string;
   status: string;
   commitSha?: string;
+  redactions?: Array<{ type: string; count: number }>;
 }
 
 /** Aggregate token usage, cost, turns, duration, and models from a session's stripped events. */
@@ -89,5 +92,6 @@ export function buildSessionMeta(events: StrippedEvent[], input: SessionMetaInpu
     cost_usd: costKnown ? Math.round(cost * 1e6) / 1e6 : null,
     pricing_version: PRICING_VERSION,
     ...(input.commitSha ? { commit_sha: input.commitSha } : {}),
+    ...(input.redactions && input.redactions.length > 0 ? { redactions: input.redactions } : {}),
   };
 }

@@ -53,44 +53,37 @@ export class SnapshotWorker {
     const eventsJsonl = this.deps.staging.read(sessionId);
     const eventCount = this.deps.staging.eventCount(sessionId);
 
-    // 3. PII gate (best-effort; Noop in item 5 → never blocks)
+    // 3. PII gate (best-effort): redact secrets inline and KEEP the session — never store a secret.
     const scan = this.deps.scanner.scan(eventsJsonl);
-
-    // Offset advances regardless (LESSONS §4.6 — never re-fail the same bytes).
-    if (scan.blocked) {
-      this.deps.ledger.advanceOffset(sessionId, offset, eventCount);
-      this.deps.ledger.setStatus(
-        sessionId,
-        "captured-with-blocks",
-        opts?.final ? { endedAt: this.deps.now() } : undefined,
-      );
-      return; // do NOT write blocked content to the shared ref
-    }
+    const hasBlocks = scan.findings.some((f) => f.severity === "block");
 
     let commitSha: string | undefined;
     if (opts?.final) {
       commitSha = (await this.deps.git.findCommitWithTrailer(sessionId)) ?? undefined;
     }
-    const events = parseEvents(eventsJsonl);
+    const status = opts?.final ? (hasBlocks ? "captured-with-blocks" : "captured") : "open";
+    const events = parseEvents(scan.scrubbed);
     const meta = buildSessionMeta(events, {
       sessionId,
       handle,
       agent: "claude-code",
-      status: opts?.final ? "captured" : "open",
+      status,
       commitSha,
+      redactions: scan.findings.map((f) => ({ type: f.type, count: f.count })),
     });
 
     await this.deps.shadow.upsert({
       handle,
       sessionId,
-      eventsJsonl: scan.scrubbed,
+      eventsJsonl: scan.scrubbed, // scrubbed content only ever reaches the ref
       meta,
       payloadEntries: sink.entries,
     });
+    // Offset advances regardless (LESSONS §4.6 — never re-fail the same bytes).
     this.deps.ledger.advanceOffset(sessionId, offset, eventCount);
 
     if (opts?.final) {
-      this.deps.ledger.setStatus(sessionId, "captured", { commitSha, endedAt: this.deps.now() });
+      this.deps.ledger.setStatus(sessionId, status, { commitSha, endedAt: this.deps.now() });
       this.deps.staging.clear(sessionId); // success → drop the local scratchpad (C-4)
     }
   }
