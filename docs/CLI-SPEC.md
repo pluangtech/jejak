@@ -46,9 +46,9 @@ Living spec for user-facing commands and journeys. **Implementation tracking:** 
 | `jejak init` | 4 | shipped | **Step 1** — add jejak to a project |
 | `jejak setup --claude-code` | 5 | shipped | **Step 2** — configure hooks |
 | *(hooks — automatic)* | 5 | shipped | Capture on Stop / SessionEnd → shadow ref (local; pushed in item 6) |
-| `jejak status` | 6 | stub | Local vs origin trace state |
+| `jejak status` | 6 | shipped (6b) | Local vs origin trace state (`--json`) |
 | `jejak active-session-id` | 5 | shipped | Open session(s) |
-| `jejak log` / `show` / `link` | 6 | stub | Browse traces |
+| `jejak log` / `show` / `link` | 6 | shipped (6b) | Browse traces (`--json`; `show --expand` resolves payloads) |
 | `jejak push` / `fetch` | 6 | stub | Share traces |
 | `jejak attach` | 6 | stub | Missed capture recovery |
 | `jejak doctor` / `--trace` | 5/6 | 5: setup checks · 6: `--trace` | Diagnostics |
@@ -192,10 +192,10 @@ self-setup refusal; does **not** create the shadow ref.
 
 ### Remaining verbs (stubs — fill in during item 2)
 
-- `jejak status` — item 6
+- `jejak status` — shipped (6b)
 - `jejak active-session-id` — item 5 ([DESIGN-LLD §16.5](DESIGN-LLD.md#165-jejak-active-session-id-c-2))
-- `jejak log` / `show` / `link` — item 6
-- `jejak push` / `fetch` — item 6 (PII gate)
+- `jejak log` / `show` / `link` — shipped (6b)
+- `jejak push` / `fetch` — item 6c (PII hard-gate)
 - `jejak attach` — item 6 ([DESIGN-LLD §16.4](DESIGN-LLD.md#164-jejak-attach-session-id-ai-1-v3-2))
 - `jejak doctor` / `--trace` — item 5 minimal, item 6 full
 - `jejak uninstall` — item 6

@@ -11,6 +11,11 @@ export class FakeGitClient implements GitClient {
   blobCount = 0;
   commits: Array<{ tree: string; message: string }> = [];
   casCalls: Array<{ ref: string; newSha: string; oldSha: string }> = [];
+  /** Canned read responses (item 6b read path). */
+  readonly blobs = new Map<string, Buffer>(); // catBlob(spec) → bytes
+  lsTreeFiles: string[] = []; // lsTree(...) → these paths
+  readonly bodies = new Map<string, string>(); // logBody(sha) → message
+  readonly revCounts = new Map<string, number>(); // revListCount(range) → n
 
   constructor(
     root = "/repo",
@@ -39,8 +44,17 @@ export class FakeGitClient implements GitClient {
     this.blobCount += 1;
     return `blob${this.blobCount}`;
   }
-  async catBlob(): Promise<Buffer> {
-    return Buffer.alloc(0);
+  async catBlob(spec: string): Promise<Buffer> {
+    return this.blobs.get(spec) ?? Buffer.alloc(0);
+  }
+  async lsTree(_ref: string, path: string, _opts?: { recursive?: boolean }): Promise<string[]> {
+    return this.lsTreeFiles.filter((f) => f.startsWith(path));
+  }
+  async logBody(sha: string): Promise<string | null> {
+    return this.bodies.get(sha) ?? null;
+  }
+  async revListCount(range: string): Promise<number> {
+    return this.revCounts.get(range) ?? 0;
   }
   trailerCalls: Array<{ messageFile: string; trailers: string[] }> = [];
   async interpretTrailers(messageFile: string, trailers: string[]): Promise<void> {

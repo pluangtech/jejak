@@ -29,6 +29,18 @@ Options:
   -h, --help     display help for command
 ```
 
+## `jejak status`
+
+```text
+Usage: jejak status [options]
+
+Local vs origin trace branch state
+
+Options:
+  --json      Emit JSON
+  -h, --help  display help for command
+```
+
 ## `jejak active-session-id`
 
 ```text
@@ -41,29 +53,6 @@ Options:
   -h, --help  display help for command
 ```
 
-## `jejak doctor`
-
-```text
-Usage: jejak doctor [options]
-
-Diagnostics for setup, sync, and capture health
-
-Options:
-  --trace     Verbose diagnostic trace (full diagnostics land in item 6)
-  -h, --help  display help for command
-```
-
-## `jejak status`
-
-```text
-Usage: jejak status [options]
-
-Local vs origin trace branch state
-
-Options:
-  -h, --help  display help for command
-```
-
 ## `jejak log`
 
 ```text
@@ -72,13 +61,15 @@ Usage: jejak log [options]
 List captured sessions
 
 Options:
+  --all       Show sessions from every dev handle (default: yours)
+  --json      Emit JSON
   -h, --help  display help for command
 ```
 
 ## `jejak show`
 
 ```text
-Usage: jejak show [options] [session-id]
+Usage: jejak show [options] <session-id>
 
 Show a captured session trace
 
@@ -86,6 +77,8 @@ Arguments:
   session-id  Session ID
 
 Options:
+  --expand    Resolve offloaded payloads to full content
+  --json      Emit JSON
   -h, --help  display help for command
 ```
 
@@ -100,6 +93,19 @@ Arguments:
   sha         Commit SHA
 
 Options:
+  --json      Emit JSON
+  -h, --help  display help for command
+```
+
+## `jejak doctor`
+
+```text
+Usage: jejak doctor [options]
+
+Diagnostics for setup, sync, and capture health
+
+Options:
+  --trace     Verbose diagnostic trace (full diagnostics land in item 6)
   -h, --help  display help for command
 ```
 

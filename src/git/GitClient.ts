@@ -29,6 +29,12 @@ export interface GitClient {
   hashObject(content: string | Buffer): Promise<string>;
   /** Read a blob/object (binary-safe), e.g. `<commit>:<path>`. */
   catBlob(spec: string): Promise<Buffer>;
+  /** List paths under `path` on `ref` (`git ls-tree --name-only`). Missing ref/path → `[]`. */
+  lsTree(ref: string, path: string, opts?: { recursive?: boolean }): Promise<string[]>;
+  /** Full commit message body (`git log -1 --format=%B`), or null if the sha can't be read. */
+  logBody(sha: string): Promise<string | null>;
+  /** Commit count for a rev range (`git rev-list --count <range>`). Unreadable range → 0. */
+  revListCount(range: string): Promise<number>;
   /** Append trailers to a commit-message file in place (`git interpret-trailers`). No-op if empty. */
   interpretTrailers(messageFile: string, trailers: string[]): Promise<void>;
   /** Most recent commit carrying a `Jejak-Session: <id>` trailer, or null. */
@@ -144,6 +150,27 @@ export class RealGitClient implements GitClient {
       ]);
     }
     return r.stdout;
+  }
+
+  async lsTree(ref: string, path: string, opts?: { recursive?: boolean }): Promise<string[]> {
+    const args = ["ls-tree", "--name-only", ...(opts?.recursive ? ["-r"] : []), ref, path];
+    const r = await runGit(args, { cwd: this.cwd });
+    if (r.code !== 0) return []; // missing ref/path → empty, never throw
+    return r.stdout
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+  }
+
+  async logBody(sha: string): Promise<string | null> {
+    const r = await runGit(["log", "-1", "--format=%B", sha], { cwd: this.cwd });
+    return r.code === 0 ? r.stdout : null;
+  }
+
+  async revListCount(range: string): Promise<number> {
+    const r = await runGit(["rev-list", "--count", range], { cwd: this.cwd });
+    if (r.code !== 0) return 0;
+    return Number.parseInt(r.stdout.trim(), 10) || 0;
   }
 
   async interpretTrailers(messageFile: string, trailers: string[]): Promise<void> {
