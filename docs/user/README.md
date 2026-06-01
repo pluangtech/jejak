@@ -46,11 +46,38 @@ branch is and why it exists. Full flag reference: [`init.md`](init.md).
 $ jejak setup --claude-code
 ```
 
-This configures the agent hooks that capture sessions automatically. (Ships in a later release;
-see [`commands.md`](commands.md) for current status.)
+This installs the agent hooks that capture every Claude Code session automatically — you don't run
+anything per session. Secrets are [redacted before they're stored](concepts/capture.md), and
+commits you make while a session is open are stamped with a `Jejak-Session` trailer so they can be
+traced back later. Details: [`setup.md`](setup.md).
 
-## Where to go next
+## The daily workflow
 
-- [`init.md`](init.md) — the `jejak init` command in detail
-- [`concepts/shadow-branch.md`](concepts/shadow-branch.md) — what jejak stores, and where
-- [`commands.md`](commands.md) — auto-generated reference for every command
+Once you're set up, capture is automatic. The rest is reading and sharing what was captured:
+
+| You want to… | Command |
+|---|---|
+| List your captured sessions (turns, tokens, **cost**, model) | [`jejak log`](log.md) |
+| Inspect one session's prompts, turns, and tool calls | [`jejak show <id>`](show.md) |
+| See which session produced a commit | [`jejak link <sha>`](link.md) |
+| Check local vs origin state of the trace branch | [`jejak status`](status.md) |
+| Share your traces with the team | [`jejak push`](push.md) |
+| Pull in teammates' traces | [`jejak fetch`](fetch.md) |
+| Recover a session the hooks missed | [`jejak attach <id>`](attach.md) |
+| See which sessions are currently open | [`jejak active-session-id`](active-session-id.md) |
+| Diagnose setup / sync / capture health | [`jejak doctor`](doctor.md) |
+| Remove jejak's hooks (traces kept) | [`jejak uninstall`](uninstall.md) |
+
+To pause capture temporarily, create an empty `.jejak/disabled` file at the repo root (delete it to
+resume) — see [`setup.md`](setup.md).
+
+## Concepts
+
+- [The shadow branch](concepts/shadow-branch.md) — what jejak stores, and where (an orphan ref,
+  never checked out)
+- [How capture works](concepts/capture.md) — the hook lifecycle and secret redaction
+- [Sharing traces](concepts/sharing.md) — the conflict-free merge and the PII push gate
+
+## Reference
+
+- [`commands.md`](commands.md) — auto-generated reference for every command and flag

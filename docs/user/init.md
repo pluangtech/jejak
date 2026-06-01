@@ -36,7 +36,7 @@ and writes `.jejak/config.json` (which you commit).
 
 ## After init
 
-Wire up automatic capture with [`jejak setup`](commands.md):
+Wire up automatic capture with [`jejak setup`](setup.md):
 
 ```console
 $ jejak setup --claude-code

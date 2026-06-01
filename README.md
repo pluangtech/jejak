@@ -48,6 +48,7 @@ After install, your traces capture automatically when a session ends. No daily w
 jejak status                  # local vs origin trace state
 jejak active-session-id       # which session(s) are open
 jejak push                    # push jejak/sessions/v1 to origin
+jejak fetch                   # fetch + merge teammates' traces from origin
 jejak log                     # browse captured sessions
 jejak show <session>          # render a session timeline
 jejak link <sha>              # list sessions linked to this commit (via trailers)

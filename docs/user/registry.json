@@ -2,6 +2,7 @@
   "verbs": [
     { "name": "init", "status": "shipped", "page": "init.md" },
     { "name": "setup", "status": "shipped", "page": "setup.md" },
+    { "name": "active-session-id", "status": "shipped", "page": "active-session-id.md" },
     { "name": "log", "status": "shipped", "page": "log.md" },
     { "name": "show", "status": "shipped", "page": "show.md" },
     { "name": "link", "status": "shipped", "page": "link.md" },
