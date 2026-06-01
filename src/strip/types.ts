@@ -48,6 +48,10 @@ export interface Usage {
   cacheCreation1hTokens?: number;
   cacheReadTokens?: number;
   serviceTier?: string;
+  /** Inference geography ("us" → +10% data-residency multiplier; "global"/"" → standard). */
+  inferenceGeo?: string;
+  /** Output speed tier ("fast" → fast-mode premium pricing; "standard" → standard). */
+  speed?: string;
   webSearchRequests?: number;
   webFetchRequests?: number;
 }

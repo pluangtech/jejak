@@ -31,6 +31,27 @@ describe("costUsd", () => {
     expect(costUsd("claude-opus-4-7", { cacheCreationTokens: M })).toBeCloseTo(6.25, 6);
   });
 
+  it("applies fast-mode Opus rates from speed:'fast'", () => {
+    // Opus 4.7 fast → $30/$150; Opus 4.8 fast → $10/$50; standard otherwise.
+    expect(
+      costUsd("claude-opus-4-7", { inputTokens: M, outputTokens: M, speed: "fast" }),
+    ).toBeCloseTo(180, 6);
+    expect(
+      costUsd("claude-opus-4-8", { inputTokens: M, outputTokens: M, speed: "fast" }),
+    ).toBeCloseTo(60, 6);
+    expect(
+      costUsd("claude-opus-4-7", { inputTokens: M, outputTokens: M, speed: "standard" }),
+    ).toBeCloseTo(30, 6);
+  });
+
+  it("applies the +10% data-residency multiplier for inference_geo:'us'", () => {
+    expect(costUsd("claude-opus-4-7", { inputTokens: M, inferenceGeo: "us" })).toBeCloseTo(5.5, 6);
+    expect(costUsd("claude-opus-4-7", { inputTokens: M, inferenceGeo: "global" })).toBeCloseTo(
+      5,
+      6,
+    );
+  });
+
   it("returns null for unknown / synthetic models", () => {
     expect(costUsd("<synthetic>", { inputTokens: M })).toBeNull();
     expect(costUsd(undefined, { inputTokens: M })).toBeNull();

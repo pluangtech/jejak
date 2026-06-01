@@ -119,6 +119,9 @@ function normalizeUsage(u: Record<string, unknown>): Usage {
     cacheCreation1hTokens: num(cacheCreation.ephemeral_1h_input_tokens),
     cacheReadTokens: num(u.cache_read_input_tokens),
     serviceTier: typeof u.service_tier === "string" ? u.service_tier : undefined,
+    inferenceGeo:
+      typeof u.inference_geo === "string" && u.inference_geo ? u.inference_geo : undefined,
+    speed: typeof u.speed === "string" ? u.speed : undefined,
     webSearchRequests: num(serverToolUse.web_search_requests),
     webFetchRequests: num(serverToolUse.web_fetch_requests),
   };
