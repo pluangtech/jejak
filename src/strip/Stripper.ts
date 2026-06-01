@@ -110,10 +110,13 @@ async function toStrippedEvent(rec: RawRecord, ctx: StripContext): Promise<Strip
 function normalizeUsage(u: Record<string, unknown>): Usage {
   const num = (v: unknown): number | undefined => (typeof v === "number" ? v : undefined);
   const serverToolUse = (u.server_tool_use ?? {}) as Record<string, unknown>;
+  const cacheCreation = (u.cache_creation ?? {}) as Record<string, unknown>;
   return {
     inputTokens: num(u.input_tokens),
     outputTokens: num(u.output_tokens),
     cacheCreationTokens: num(u.cache_creation_input_tokens),
+    cacheCreation5mTokens: num(cacheCreation.ephemeral_5m_input_tokens),
+    cacheCreation1hTokens: num(cacheCreation.ephemeral_1h_input_tokens),
     cacheReadTokens: num(u.cache_read_input_tokens),
     serviceTier: typeof u.service_tier === "string" ? u.service_tier : undefined,
     webSearchRequests: num(serverToolUse.web_search_requests),

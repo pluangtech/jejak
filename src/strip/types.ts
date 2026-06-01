@@ -42,6 +42,10 @@ export interface Usage {
   inputTokens?: number;
   outputTokens?: number;
   cacheCreationTokens?: number;
+  /** 5-minute cache writes (priced 1.25× input). */
+  cacheCreation5mTokens?: number;
+  /** 1-hour cache writes (priced 2× input). */
+  cacheCreation1hTokens?: number;
   cacheReadTokens?: number;
   serviceTier?: string;
   webSearchRequests?: number;
