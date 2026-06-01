@@ -5,7 +5,9 @@
     { "name": "log", "status": "shipped", "page": "log.md" },
     { "name": "show", "status": "shipped", "page": "show.md" },
     { "name": "link", "status": "shipped", "page": "link.md" },
-    { "name": "status", "status": "shipped", "page": "status.md" }
+    { "name": "status", "status": "shipped", "page": "status.md" },
+    { "name": "push", "status": "shipped", "page": "push.md" },
+    { "name": "fetch", "status": "shipped", "page": "fetch.md" }
   ],
   "concepts": [
     {
@@ -25,6 +27,13 @@
       "status": "shipped",
       "page": "concepts/capture.md",
       "sources": ["src/capture/SnapshotWorker.ts", "src/hooks/HookRouter.ts"]
+    },
+    {
+      "id": "sharing",
+      "title": "Sharing traces",
+      "status": "shipped",
+      "page": "concepts/sharing.md",
+      "sources": ["src/sync/SyncRepository.ts", "src/pii/loadCatalog.ts"]
     }
   ]
 }

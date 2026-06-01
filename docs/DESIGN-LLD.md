@@ -502,6 +502,22 @@ refs/heads/jejak/sessions/v1
 
 §12.1–12.3 unchanged from v0.2. Client-side merge (Q1: confirmed). Server-side merge explicitly rejected for v0.1.
 
+**Concrete merge (item 6c — resolves REVIEW-LLD C-2/C-3).** The shadow ref is an orphan that is
+never checked out, so a worktree `git merge` is impossible. `SyncRepository.mergeInto` runs pure
+plumbing instead:
+
+1. `ahead = rev-list --count theirs..ours`, `behind = rev-list --count ours..theirs`.
+2. `behind == 0` → up to date; `ahead == 0` → fast-forward (CAS `ours→theirs`); else diverged →
+3. `git merge-tree --write-tree <ours> <theirs>` composes the merged tree in the object store
+   (auto-computes the merge base; **honors the merged trees' own `.gitattributes`**, so the seed
+   `merge=ours` / `merge=union` drivers fire — `read-tree -m` would NOT invoke them, the C-3 trap),
+   then `commit-tree <tree> -p ours -p theirs` and a compare-and-swap `update-ref` advance the local
+   ref. The ref is never checked out; the dev's branch/worktree are untouched.
+
+Conflict-free by construction: each writer owns a disjoint `sessions/<handle>/…` partition, and
+`merge.ours.driver true` (registered by `ShadowRepository.ensure`) deterministically resolves the
+rare same-path case.
+
 ---
 
 ## 13. Pre-turn diff (v0.2)
@@ -518,7 +534,12 @@ State machine unchanged from v0.2 (`captured → open` on resume).
 
 ## 15. Push / fetch
 
-Unchanged from v0.2: fetch → merge §12.2 → plain push + retry. PII hard gate before push.
+fetch → merge (§12) → plain push + retry. **PII hard gate before push** (item 6c): `jejak push`
+exits non-zero without pushing if `loadCatalog(repoRoot).ok` is false (unparseable `.jejak/pii.json`)
+— the built-in patterns always scrub, so this gate only guards a broken *custom* config.
+`jejak fetch` is `git fetch <remote> <ref>:refs/remotes/<remote>/…` then the §12 merge; `jejak push`
+is `git push <remote> <ref>:<ref>`, and on a non-fast-forward rejection it fetches+merges the remote
+tip and retries (≤5 attempts). Implemented in `src/sync/SyncRepository.ts`.
 
 ---
 

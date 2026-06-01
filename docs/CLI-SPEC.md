@@ -49,7 +49,7 @@ Living spec for user-facing commands and journeys. **Implementation tracking:** 
 | `jejak status` | 6 | shipped (6b) | Local vs origin trace state (`--json`) |
 | `jejak active-session-id` | 5 | shipped | Open session(s) |
 | `jejak log` / `show` / `link` | 6 | shipped (6b) | Browse traces (`--json`; `show --expand` resolves payloads) |
-| `jejak push` / `fetch` | 6 | stub | Share traces |
+| `jejak push` / `fetch` | 6 | shipped (6c) | Share traces (client-side merge; PII push hard-gate) |
 | `jejak attach` | 6 | stub | Missed capture recovery |
 | `jejak doctor` / `--trace` | 5/6 | 5: setup checks · 6: `--trace` | Diagnostics |
 | `npm update -g` + `jejak setup --force` | 2 | spec | Update CLI + refresh hook scripts |
@@ -195,7 +195,7 @@ self-setup refusal; does **not** create the shadow ref.
 - `jejak status` — shipped (6b)
 - `jejak active-session-id` — item 5 ([DESIGN-LLD §16.5](DESIGN-LLD.md#165-jejak-active-session-id-c-2))
 - `jejak log` / `show` / `link` — shipped (6b)
-- `jejak push` / `fetch` — item 6c (PII hard-gate)
+- `jejak push` / `fetch` — shipped (6c; client-side merge + PII hard-gate)
 - `jejak attach` — item 6 ([DESIGN-LLD §16.4](DESIGN-LLD.md#164-jejak-attach-session-id-ai-1-v3-2))
 - `jejak doctor` / `--trace` — item 5 minimal, item 6 full
 - `jejak uninstall` — item 6

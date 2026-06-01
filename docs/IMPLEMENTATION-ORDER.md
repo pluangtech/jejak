@@ -547,7 +547,7 @@ End-to-end capture: session start → partial snapshots → session end → shad
 
 ## 6. PII gate, push, and read CLI
 
-**Status:** `in progress` — **6a (PII gate) + 6b (read CLI) shipped**; 6c push-fetch / 6d lifecycle pending  
+**Status:** `in progress` — **6a (PII gate) + 6b (read CLI) + 6c (push/fetch) shipped**; 6d lifecycle pending  
 **Plan:** [plans/ITEM6-PII-SHARE-READ-PLAN.md](plans/ITEM6-PII-SHARE-READ-PLAN.md) (validated PASS) — phased 6a→6d  
 **LLD:** §9 PII · §15 push/fetch · §16 read path · build steps S5–S9  
 **Depends on:** 5  
@@ -560,7 +560,9 @@ Make traces safe to share and usable from the CLI. Every remaining v0.1 verb fro
 - [x] **(6a)** PII scanner + 6-pattern catalog (+ zero-dep `.jejak/pii.json` override) — `src/pii/`;
   **redact inline + keep the session** (`captured-with-blocks`, redactions in `meta.json`); `doctor` PII-ready check
 - [ ] PII fixture session containing each of the 6 catalog patterns: `jejak show` confirms each is redacted; one fixture with a pattern at a path matching `.jejakignore` confirms full-path exclusion
-- [ ] `jejak push` / `fetch` with merge
+- [x] **(6c)** `jejak push` / `fetch` with client-side merge — `src/sync/SyncRepository.ts`
+  (`git merge-tree --write-tree` → `commit-tree` → CAS, never checks out the ref; conflict-free via
+  disjoint `sessions/<handle>/` partitions); **PII push hard-gate** (refuses on unloadable `.jejak/pii.json`)
 - [ ] **Full `jejak doctor` + `doctor --trace`** (extends minimal doctor from item 5): shadow sync ahead/behind, dispatch error count, PII-ready gate, filesystem warnings, watcher conflict, staging orphans, hook-latency p50/p95/p99
 - [x] **(6b)** `jejak log` / `show [--expand]` / `link` / `status` — read CLI over the shadow ref
   (`src/read/SessionReader.ts` + handlers; `--json` on each); `active-session-id` shipped in 5; `attach` pending (6d)

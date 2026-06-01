@@ -16,6 +16,13 @@ export class FakeGitClient implements GitClient {
   lsTreeFiles: string[] = []; // lsTree(...) → these paths
   readonly bodies = new Map<string, string>(); // logBody(sha) → message
   readonly revCounts = new Map<string, number>(); // revListCount(range) → n
+  /** Canned sync responses (item 6c). */
+  fetchReturns: string | null = null; // fetch(...) → their tip
+  pushResults: boolean[] = []; // queue: each push() shifts one (default true when empty)
+  mergeTreeReturns = "mergedtree";
+  readonly fetchCalls: Array<{ remote: string; ref: string }> = [];
+  readonly pushCalls: Array<{ remote: string; ref: string }> = [];
+  readonly mergeTreeCalls: Array<{ ours: string; theirs: string }> = [];
 
   constructor(
     root = "/repo",
@@ -75,6 +82,18 @@ export class FakeGitClient implements GitClient {
     this.casCalls.push({ ref, newSha, oldSha });
     this.refs.add(ref);
     return true;
+  }
+  async fetch(remote: string, ref: string): Promise<string | null> {
+    this.fetchCalls.push({ remote, ref });
+    return this.fetchReturns;
+  }
+  async push(remote: string, ref: string): Promise<boolean> {
+    this.pushCalls.push({ remote, ref });
+    return this.pushResults.length > 0 ? (this.pushResults.shift() as boolean) : true;
+  }
+  async mergeTree(ours: string, theirs: string): Promise<string> {
+    this.mergeTreeCalls.push({ ours, theirs });
+    return this.mergeTreeReturns;
   }
   async getConfig(key: string, opts?: { global?: boolean }): Promise<string | null> {
     return (opts?.global ? this.globalConfig : this.config).get(key) ?? null;

@@ -48,6 +48,20 @@ export interface GitClient {
   commitTree(tree: string, message: string, parents?: string[]): Promise<string>;
   /** Compare-and-swap a ref. `oldSha=""` means "must not already exist". Returns false on CAS miss. */
   updateRefCAS(ref: string, newSha: string, oldSha?: string): Promise<boolean>;
+  /**
+   * Fetch `ref` from `remote` into its remote-tracking ref
+   * (`refs/remotes/<remote>/jejak/sessions/v1`). Returns their tip SHA, or null if the remote has
+   * no such ref yet. Never throws on an empty remote.
+   */
+  fetch(remote: string, ref: string): Promise<string | null>;
+  /** Push `ref` to `remote`. True on success; false on a non-fast-forward rejection (retry). */
+  push(remote: string, ref: string): Promise<boolean>;
+  /**
+   * Three-way merge two commits without a worktree: `git merge-tree --write-tree <ours> <theirs>`
+   * (auto-computes the merge base; honors the merged trees' `.gitattributes` drivers). Returns the
+   * merged tree OID. The ref is never checked out.
+   */
+  mergeTree(ours: string, theirs: string): Promise<string>;
   /** Read a git config value, or null if unset. */
   getConfig(key: string, opts?: { global?: boolean }): Promise<string | null>;
   /** Set a (local) git config value. Idempotent. */
@@ -228,6 +242,41 @@ export class RealGitClient implements GitClient {
   async updateRefCAS(ref: string, newSha: string, oldSha = ""): Promise<boolean> {
     const r = await runGit(["update-ref", ref, newSha, oldSha], { cwd: this.cwd });
     return r.code === 0;
+  }
+
+  async fetch(remote: string, ref: string): Promise<string | null> {
+    const tracking = `refs/remotes/${remote}/${ref.replace(/^refs\/heads\//, "")}`;
+    const r = await runGit(["fetch", remote, `${ref}:${tracking}`], { cwd: this.cwd });
+    // Non-zero is usually "couldn't find remote ref" (origin has no traces yet) → treat as empty.
+    if (r.code !== 0) return null;
+    return this.resolveRef(tracking);
+  }
+
+  async push(remote: string, ref: string): Promise<boolean> {
+    const r = await runGit(["push", remote, `${ref}:${ref}`], { cwd: this.cwd });
+    if (r.code === 0) return true;
+    // A non-fast-forward rejection is the retry signal; anything else is a real error.
+    if (/\b(rejected|non-fast-forward|fetch first|stale info)\b/i.test(r.stderr)) return false;
+    throw new GitError(`git push ${remote} ${ref} failed (${r.code}): ${r.stderr.trim()}`, r.code, [
+      "push",
+      remote,
+      ref,
+    ]);
+  }
+
+  async mergeTree(ours: string, theirs: string): Promise<string> {
+    const r = await runGit(["merge-tree", "--write-tree", ours, theirs], { cwd: this.cwd });
+    // Exit 0 = clean, 1 = conflicts resolved by the ours/union drivers (tree still written on line 1).
+    // Anything higher (≥128) is a real failure.
+    const tree = r.stdout.split("\n")[0]?.trim();
+    if (r.code >= 128 || !tree) {
+      throw new GitError(
+        `git merge-tree ${ours} ${theirs} failed (${r.code}): ${r.stderr.trim()}`,
+        r.code,
+        ["merge-tree", ours, theirs],
+      );
+    }
+    return tree;
   }
 
   async getConfig(key: string, opts?: { global?: boolean }): Promise<string | null> {

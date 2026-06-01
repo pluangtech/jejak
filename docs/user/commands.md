@@ -97,18 +97,6 @@ Options:
   -h, --help  display help for command
 ```
 
-## `jejak doctor`
-
-```text
-Usage: jejak doctor [options]
-
-Diagnostics for setup, sync, and capture health
-
-Options:
-  --trace     Verbose diagnostic trace (full diagnostics land in item 6)
-  -h, --help  display help for command
-```
-
 ## `jejak push`
 
 ```text
@@ -128,6 +116,18 @@ Usage: jejak fetch [options]
 Fetch and merge traces from origin
 
 Options:
+  -h, --help  display help for command
+```
+
+## `jejak doctor`
+
+```text
+Usage: jejak doctor [options]
+
+Diagnostics for setup, sync, and capture health
+
+Options:
+  --trace     Verbose diagnostic trace (full diagnostics land in item 6)
   -h, --help  display help for command
 ```
 
