@@ -93,10 +93,28 @@ jejak init
 # → detect agent (picker if none/ambiguous) → .jejak/config.json
 # → shadow ref (seed .gitattributes on ref only), .jejakignore
 
-# Step 2 — configure hooks (item 5)
+# Step 2 — configure hooks
 jejak setup --claude-code
 
-# Step 3+ — TBD (capture, commit, push, fetch, show/link)
+# Step 3 — work normally: run a Claude Code session, make commits.
+# Capture is automatic (Stop / SessionEnd hooks); commits made while a session
+# is open are stamped with a Jejak-Session trailer.
+jejak active-session-id        # which session is open right now
+
+# Step 4 — read what was captured
+jejak log                      # sessions table: turns, tokens, cost, model
+jejak show <session-id>        # the session timeline (--expand for full payloads)
+jejak link <sha>               # which session(s) produced a commit
+
+# Step 5 — share with the team
+jejak push                     # publish the shadow ref to origin (PII hard-gate)
+jejak fetch                    # merge teammates' traces back in (client-side merge)
+jejak status                   # local vs origin ahead/behind
+
+# Recover / diagnose / remove
+jejak attach <session-id>      # finalize a session the hooks missed + link HEAD
+jejak doctor [--trace]         # health checks; --trace = per-hook latency p50/p95/p99
+jejak uninstall [--purge]      # remove hooks (traces kept); --purge clears local state
 ```
 
 ---

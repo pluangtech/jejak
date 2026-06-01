@@ -2,6 +2,7 @@
 
 | Document | Purpose |
 |---|---|
+| [user/README.md](user/README.md) | **User guide** — task-oriented docs for people *using* jejak (start here) |
 | [CLI-SPEC.md](CLI-SPEC.md) | **CLI & UX spec** — verbs, onboarding (`init` / `setup`), user journeys |
 | [plans/INIT-IMPLEMENTATION-PLAN.md](plans/INIT-IMPLEMENTATION-PLAN.md) | **`jejak init` implementation plan** — workflows, LLD, example runs |
 | [IMPLEMENTATION-ORDER.md](IMPLEMENTATION-ORDER.md) | **Execution plan** — modus operandi, build order, test-project checklists |

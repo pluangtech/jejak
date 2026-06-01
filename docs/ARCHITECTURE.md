@@ -78,7 +78,11 @@ Layer 3: client-side fetch → merge → plain push + retry.
 
 ## 5. Privacy
 
-PII redaction is **best-effort** (6 block patterns + `.jejak/pii.yaml`). Not a guarantee. Layers: PII scan, `.jejakignore`, local staging, push gate.
+PII redaction is **best-effort** — 5 built-in block patterns (AWS key, private key, bearer token,
+secret assignment, JWT) plus opt-in email, with custom patterns via a zero-dep `.jejak/pii.json`
+(deviates from the doc's earlier `.yaml` to avoid a YAML dependency). Secrets are **redacted inline**
+and the session is kept (marked `captured-with-blocks`), never silently dropped. Not a guarantee.
+Layers: PII scan, local staging, push hard-gate (refuses if the catalog won't load).
 
 ## 6. CLI (v0.1)
 
