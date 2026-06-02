@@ -73,6 +73,7 @@ Note: jejak's own development repo refuses `init` / `setup` (see `jejak setup --
 
 - **v0.1** — Claude Code capture, commit trailers, stripped JSONL, shadow branch, basic CLI.
 - **v0.2** — Cursor support, two-tier storage, pre-turn diff, `Jejak-Attribution` trailer.
+  - **Next up:** commit-time reconcile (self-healing capture) — move heavy capture off the per-turn hot path onto a `post-commit` reconcile that re-derives the shadow ref from durable transcripts. Proposal: [docs/plans/COMMIT-TIME-RECONCILE-PROPOSAL.md](docs/plans/COMMIT-TIME-RECONCILE-PROPOSAL.md).
 - **v0.3** — Codex support, team digest (`jejak digest --since 1w`), prompt-pattern analytics.
 - **v1.0** — Pluggable agent adapters, stable trace schema, hosted viewer (optional).
 
