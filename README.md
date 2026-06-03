@@ -23,20 +23,44 @@ That's a problem when:
 3. **Commits** the stripped trace to a shadow branch (`refs/heads/jejak/sessions/v1`) that lives in the repo but stays out of your normal branch history and PRs.
 4. **Merges cleanly** by design: each session gets its own hash-sharded path under a per-developer namespace, so traces never collide even when ten engineers push concurrently.
 
-## Install (sketch)
+## Install
+
+jejak is not published to npm yet (`0.1.0-dev`), so today you install it from a clone of this
+repo. Two repos are involved: **this clone** (the tool's source) and **your project** (where you
+want capture).
+
+### Step 0 — build & link the CLI (in this clone)
+
+Requires **Node 20+** and **pnpm**.
 
 ```bash
-# Step 0 — install the CLI (Node 20+ required)
-npm install -g jejak
-# Dev: pnpm build && pnpm link --global  (from jejak clone)
-
-# Step 1 — add jejak to your repo
-cd my-repo
-jejak init
-
-# Step 2 — configure Claude Code + git hooks
-jejak setup --claude-code
+cd jejak
+pnpm install            # installs deps + builds the better-sqlite3 native binding
+pnpm build              # tsup → dist/cli.js
+pnpm link --global      # puts `jejak` on your PATH
 ```
+
+`jejak --help` should now work from any directory.
+
+### Step 1 — add jejak to your project
+
+```bash
+cd my-repo              # must be a git repo (run `git init` first if needed)
+jejak init --global     # detect agent, create the shadow branch, write .jejak/config.json
+jejak setup --claude-code   # install the Claude Code + git hooks
+```
+
+Traces now capture automatically when a session ends. Verify with `jejak doctor`.
+
+> **Why `--global`?** `jejak init` defaults Node repos to *project* mode, where hooks call
+> `npx jejak` and teammates get the CLI via `npm install`. That path needs jejak on a registry,
+> so until it's published, use `--global` (every developer runs Step 0 once). Non-Node repos
+> default to global already. Once published, `npm install -g jejak` replaces Step 0 and project
+> mode becomes the team default.
+
+> **Not inside this repo.** `init` / `setup` are refused in jejak's own repo by design — it never
+> captures its own development. Use a separate project (or the test repo noted under
+> [Testing](#testing)).
 
 Details: [docs/CLI-SPEC.md](docs/CLI-SPEC.md) · progress: [docs/IMPLEMENTATION-ORDER.md](docs/IMPLEMENTATION-ORDER.md)
 
@@ -83,7 +107,11 @@ MIT — see [LICENSE](LICENSE).
 
 ## Testing
 
-Development uses a separate test repo at `~/Documents/projects/jejak-testproj/` (never run `jejak setup` in the jejak repo itself). CLI spec: [docs/CLI-SPEC.md](docs/CLI-SPEC.md) · execution plan: [docs/IMPLEMENTATION-ORDER.md](docs/IMPLEMENTATION-ORDER.md).
+Because `init` / `setup` are refused inside this repo (see [Install](#install)), exercise the CLI
+against a separate project. Development uses a throwaway repo at
+`~/Documents/projects/jejak-testproj/`: build and link per [Step 0](#step-0--build--link-the-cli-in-this-clone),
+then run `jejak init --global` / `jejak setup --claude-code` there. CLI spec:
+[docs/CLI-SPEC.md](docs/CLI-SPEC.md) · execution plan: [docs/IMPLEMENTATION-ORDER.md](docs/IMPLEMENTATION-ORDER.md).
 
 ## Docs
 
