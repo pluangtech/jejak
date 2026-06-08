@@ -21,7 +21,7 @@ Living doc. Update **Status**, **Results / notes**, and item order as we learn m
 | **Language** | **TypeScript 5.x, strict mode** | OSS ecosystem expectation; matches Claude Code's stack; type-safe payloads and git operations |
 | **Runtime** | **Node 20 LTS+** (`engines.node >=20.0.0`) | Ubiquitous, LTS-supported, has native fetch / test runner / watch |
 | **Module system** | **ESM** (`.ts` → `.js` ESM output; `"type": "module"`) | Modern default; no CJS legacy |
-| **Package manager** | **pnpm** | Faster + less disk than npm; standard for serious 2026 OSS |
+| **Package manager** | **pnpm** (dev/build only — users install via npm) | **Speed + disk:** content-addressable store + hard-links, not per-project copies — matters with our native dep (better-sqlite3) and heavy dev toolchain (tsup/vitest/biome/vitepress), and keeps the clean-checkout CI install fast. **Strict resolution:** symlinked non-flat `node_modules` blocks phantom (undeclared) imports — a correctness guard for a tool installed into others' repos. **Native-build control:** postinstall scripts are blocked unless allowlisted via `pnpm.onlyBuiltDependencies` (`better-sqlite3`, `biome`, `esbuild`), giving auditable supply-chain control over what may compile — the `prepare` → `scripts/ensure-native.mjs` self-heal is built on this lifecycle. This is a *development* choice only: end users install with **npm** (`npm install -g jejak`; project-mode hooks call `npx jejak`). |
 | **Build** | **tsup** (esbuild under the hood) | Single config, produces ESM + `.d.ts`; ~10x faster than tsc |
 | **Distribution** | **npm** (`jejak`) | Standard; users running Claude Code already have Node |
 | **CLI framework** | **commander** | Battle-tested, well-typed, boring-safe |
