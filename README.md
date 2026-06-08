@@ -52,6 +52,10 @@ jejak setup --claude-code   # install the Claude Code + git hooks
 
 Traces now capture automatically when a session ends. Verify with `jejak doctor`.
 
+> **Non-interactive `init`.** `jejak init` prompts for the agent when it can't detect one, so a
+> bare run needs a terminal — in a script or CI it exits with `pass --agent claude-code`. Add the
+> flag to skip the prompt: `jejak init --global --agent claude-code`.
+
 > **Why `--global`?** `jejak init` defaults Node repos to *project* mode, where hooks call
 > `npx jejak` and teammates get the CLI via `npm install`. That path needs jejak on a registry,
 > so until it's published, use `--global` (every developer runs Step 0 once). Non-Node repos
