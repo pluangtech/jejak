@@ -3,6 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { GitError } from "../errors.js";
+import { PUSH_GUARD_ENV } from "./pushGuard.js";
 
 /** One entry to stage into a throwaway index when composing a tree. */
 export interface TreeEntry {
@@ -277,7 +278,12 @@ export class RealGitClient implements GitClient {
   }
 
   async push(remote: string, ref: string): Promise<boolean> {
-    const r = await runGit(["push", remote, `${ref}:${ref}`], { cwd: this.cwd });
+    // Carry the handshake so jejak's own (gated) push passes the pre-push shadow-ref guard.
+    // git.push is used only for the shadow sync, so setting it unconditionally is correct.
+    const r = await runGit(["push", remote, `${ref}:${ref}`], {
+      cwd: this.cwd,
+      env: { ...process.env, [PUSH_GUARD_ENV]: "1" },
+    });
     if (r.code === 0) return true;
     // A non-fast-forward rejection is the retry signal; anything else is a real error.
     if (/\b(rejected|non-fast-forward|fetch first|stale info)\b/i.test(r.stderr)) return false;

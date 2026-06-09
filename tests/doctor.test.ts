@@ -3,8 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runDoctor } from "../src/doctor.js";
+import { renderPrePushGuard } from "../src/git/pushGuard.js";
 import { localPaths } from "../src/localstate/paths.js";
-import { CollectingReporter } from "./helpers/fakes.js";
+import { CollectingReporter, FakeGitClient } from "./helpers/fakes.js";
 
 let dir: string;
 let home: string;
@@ -29,6 +30,7 @@ describe("runDoctor (minimal)", () => {
       join(dir, ".git/hooks/prepare-commit-msg"),
       'exec npx jejak _hook prepare-commit-msg "$@"',
     );
+    writeFileSync(join(dir, ".git/hooks/pre-push"), renderPrePushGuard());
     const lp = localPaths(dir, home);
     mkdirSync(lp.dir, { recursive: true });
     writeFileSync(lp.ledgerDb, "");
@@ -37,6 +39,7 @@ describe("runDoctor (minimal)", () => {
     const result = await runDoctor({ repoRoot: dir, reporter, home });
     expect(result.ok).toBe(true);
     expect(reporter.text()).toContain("[ok] agent hooks");
+    expect(reporter.text()).toContain("[ok] pre-push shadow guard");
   });
 
   it("flags missing pieces", async () => {
@@ -44,5 +47,26 @@ describe("runDoctor (minimal)", () => {
     const result = await runDoctor({ repoRoot: dir, reporter, home });
     expect(result.ok).toBe(false);
     expect(reporter.text()).toContain("MISSING");
+  });
+
+  it("flags a missing pre-push guard with a remediation warning", async () => {
+    const reporter = new CollectingReporter();
+    await runDoctor({ repoRoot: dir, reporter, home });
+    expect(reporter.text()).toContain("[MISSING] pre-push shadow guard");
+    expect(reporter.text()).toContain("NOT protected from accidental `git push`");
+  });
+
+  it("warns on push.default=matching", async () => {
+    const git = new FakeGitClient(dir, { config: { "push.default": "matching" } });
+    const reporter = new CollectingReporter();
+    await runDoctor({ repoRoot: dir, reporter, git, home });
+    expect(reporter.text()).toContain("push.default=matching");
+  });
+
+  it("does not warn when push.default is safe", async () => {
+    const git = new FakeGitClient(dir, { config: { "push.default": "simple" } });
+    const reporter = new CollectingReporter();
+    await runDoctor({ repoRoot: dir, reporter, git, home });
+    expect(reporter.text()).not.toContain("push.default=matching");
   });
 });

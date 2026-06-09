@@ -7,6 +7,7 @@ import { modeFor } from "../modes/detectMode.js";
 import type { AgentId } from "../types.js";
 import { ClaudeCodeHookInstaller } from "./ClaudeCodeHookInstaller.js";
 import type { HookInstaller } from "./HookInstaller.js";
+import { resolveHooksDir } from "./hooksDir.js";
 import { resolveCliPath } from "./resolveCli.js";
 
 export interface SetupFlags {
@@ -55,15 +56,17 @@ export async function runSetup(flags: SetupFlags, deps: SetupDeps): Promise<void
   const installer = (deps.installerFor ?? defaultInstallerFor)(config.agent);
   if (!installer) throw new InitError(`jejak: no hook installer for '${config.agent}'`);
 
-  const report = await installer.install({ repoRoot, cli, force: Boolean(flags.force) });
+  const hooksDir = await resolveHooksDir(deps.git, repoRoot);
+  const report = await installer.install({ repoRoot, cli, hooksDir, force: Boolean(flags.force) });
 
   const r = deps.reporter;
   r.line(`jejak: configured ${config.agent} hooks (${mode.mode} mode)`);
   r.line(
     `  agent hooks: ${report.settingsChanged ? "wired into .claude/settings.json" : "already present"}`,
   );
+  r.line(`  git hook:    ${report.gitHookWritten ? "installed prepare-commit-msg" : "unchanged"}`);
   r.line(
-    `  git hook:    ${report.gitHookWritten ? "installed .git/hooks/prepare-commit-msg" : "unchanged"}`,
+    `  push guard:  ${report.prePushWritten ? "installed pre-push (blocks accidental trace pushes)" : "unchanged"}`,
   );
   for (const w of report.warnings) r.line(`  warning: ${w}`);
   r.line(

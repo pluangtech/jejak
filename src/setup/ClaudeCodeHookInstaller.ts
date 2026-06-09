@@ -1,13 +1,19 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { PRE_PUSH_MARKER, renderPrePushGuard } from "../git/pushGuard.js";
 import type { AgentId } from "../types.js";
 import type { HookInstaller, InstallContext, InstallReport } from "./HookInstaller.js";
 import { type ClaudeSettings, mergeSettings } from "./settingsMerge.js";
 
 const SETTINGS_PATH = ".claude/settings.json";
-const GIT_HOOK_PATH = ".git/hooks/prepare-commit-msg";
-/** Marker that identifies a jejak-written git hook (so we refresh ours but never clobber a foreign one). */
-const GIT_HOOK_MARKER = "_hook prepare-commit-msg";
+/** Marker that identifies a jejak-written prepare-commit-msg hook (refresh ours, never clobber foreign). */
+const PREPARE_COMMIT_MARKER = "_hook prepare-commit-msg";
+
+/** Result of writing one managed git hook. */
+interface HookWrite {
+  written: boolean;
+  warning?: string;
+}
 
 export class ClaudeCodeHookInstaller implements HookInstaller {
   readonly agentId: AgentId = "claude-code";
@@ -15,8 +21,29 @@ export class ClaudeCodeHookInstaller implements HookInstaller {
   async install(ctx: InstallContext): Promise<InstallReport> {
     const warnings: string[] = [];
     const settingsChanged = this.mergeAgentHooks(ctx);
-    const gitHookWritten = this.installGitHook(ctx, warnings);
-    return { settingsChanged, gitHookWritten, warnings };
+
+    const prepare = this.writeManagedHook(ctx, {
+      name: "prepare-commit-msg",
+      marker: PREPARE_COMMIT_MARKER,
+      body: `#!/usr/bin/env bash\nexec ${ctx.cli} _hook prepare-commit-msg "$@"\n`,
+      manualFix: `add 'exec ${ctx.cli} _hook prepare-commit-msg "$@"' manually`,
+    });
+    if (prepare.warning) warnings.push(prepare.warning);
+
+    const prePush = this.writeManagedHook(ctx, {
+      name: "pre-push",
+      marker: PRE_PUSH_MARKER,
+      body: renderPrePushGuard(),
+      manualFix: "add jejak's pre-push guard manually to keep the trace ref off accidental pushes",
+    });
+    if (prePush.warning) warnings.push(prePush.warning);
+
+    return {
+      settingsChanged,
+      gitHookWritten: prepare.written,
+      prePushWritten: prePush.written,
+      warnings,
+    };
   }
 
   /** Additive merge into .claude/settings.json (never clobbers foreign hooks). */
@@ -38,27 +65,28 @@ export class ClaudeCodeHookInstaller implements HookInstaller {
     return changed;
   }
 
-  /** Write the prepare-commit-msg git hook — refresh ours, never clobber a foreign one. */
-  private installGitHook(ctx: InstallContext, warnings: string[]): boolean {
-    const path = join(ctx.repoRoot, GIT_HOOK_PATH);
+  /**
+   * Write one git hook under the resolved hooks dir — refresh ours, never clobber a foreign one.
+   * A hook is "ours" if it carries `marker`; a foreign hook is left untouched with a warning.
+   */
+  private writeManagedHook(
+    ctx: InstallContext,
+    hook: { name: string; marker: string; body: string; manualFix: string },
+  ): HookWrite {
+    const path = join(ctx.hooksDir, hook.name);
     if (existsSync(path)) {
       const current = readFileSync(path, "utf8");
-      const isOurs = current.includes(GIT_HOOK_MARKER);
-      if (!isOurs) {
-        warnings.push(
-          `existing ${GIT_HOOK_PATH} left untouched (not jejak's) — add 'exec ${ctx.cli} _hook prepare-commit-msg "$@"' manually`,
-        );
-        return false;
+      if (!current.includes(hook.marker)) {
+        return {
+          written: false,
+          warning: `existing ${hook.name} hook left untouched (not jejak's) — ${hook.manualFix}`,
+        };
       }
-      if (!ctx.force && current.includes(ctx.cli)) return false; // already current
+      if (!ctx.force && current === hook.body) return { written: false }; // already current
     }
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(
-      path,
-      `#!/usr/bin/env bash\nexec ${ctx.cli} _hook prepare-commit-msg "$@"\n`,
-      "utf8",
-    );
+    mkdirSync(ctx.hooksDir, { recursive: true });
+    writeFileSync(path, hook.body, "utf8");
     chmodSync(path, 0o755);
-    return true;
+    return { written: true };
   }
 }

@@ -8,10 +8,12 @@ import {
   summarizeDispatch,
 } from "./doctor/dispatch.js";
 import type { GitClient } from "./git/GitClient.js";
+import { PRE_PUSH_MARKER } from "./git/pushGuard.js";
 import { isDisabled } from "./hooks/disabled.js";
 import { SessionLedger } from "./ledger/SessionLedger.js";
 import { localPaths } from "./localstate/paths.js";
 import { loadCatalog } from "./pii/loadCatalog.js";
+import { resolveHooksDir } from "./setup/hooksDir.js";
 import { SHADOW_REF } from "./shadow/constants.js";
 
 export interface DoctorDeps {
@@ -51,24 +53,37 @@ export async function runDoctor(deps: DoctorDeps): Promise<{ ok: boolean }> {
 
   const settingsPath = join(repoRoot, ".claude", "settings.json");
   const agentWired = existsSync(settingsPath) && safeRead(settingsPath).includes("_hook ");
-  const gitHookPath = join(repoRoot, ".git", "hooks", "prepare-commit-msg");
+  // Honor core.hooksPath (husky) when git is available; otherwise fall back to .git/hooks.
+  const hooksDir = deps.git
+    ? await resolveHooksDir(deps.git, repoRoot)
+    : join(repoRoot, ".git", "hooks");
+  const gitHookPath = join(hooksDir, "prepare-commit-msg");
   const gitHookWired =
     existsSync(gitHookPath) && safeRead(gitHookPath).includes("_hook prepare-commit-msg");
+  const prePushPath = join(hooksDir, "pre-push");
+  const prePushWired = existsSync(prePushPath) && safeRead(prePushPath).includes(PRE_PUSH_MARKER);
 
   const checks: Array<{ name: string; ok: boolean }> = [
     { name: "agent hooks in .claude/settings.json", ok: agentWired },
-    { name: "git hook .git/hooks/prepare-commit-msg", ok: gitHookWired },
+    { name: "git hook prepare-commit-msg", ok: gitHookWired },
+    { name: "pre-push shadow guard (accidental-push protection)", ok: prePushWired },
     { name: "session ledger present", ok: existsSync(lp.ledgerDb) },
     { name: "PII catalog ready (push gate)", ok: loadCatalog(repoRoot).ok },
   ];
 
   reporter.line("jejak doctor — setup checks:");
   for (const c of checks) reporter.line(`  [${c.ok ? "ok" : "MISSING"}] ${c.name}`);
+  if (!prePushWired) {
+    reporter.line(
+      "  [warn] shadow ref NOT protected from accidental `git push` — run `jejak setup`",
+    );
+  }
   reporter.line(
     `  [info] .jejak/disabled: ${isDisabled(repoRoot) ? "present (capture OFF)" : "absent"}`,
   );
 
   await reportSync(deps);
+  await reportPushSafety(deps);
   reportSessionsAndState(deps, lp, now());
   reportFilesystem(deps);
   if (deps.trace) reportTrace(deps, lp);
@@ -91,6 +106,17 @@ async function reportSync(deps: DoctorDeps): Promise<void> {
     reporter.line(`  [info] shadow sync: ${ahead} ahead, ${behind} behind origin`);
   } else {
     reporter.line("  [info] shadow sync: not pushed yet (no origin tracking ref)");
+  }
+}
+
+/** Warn on git config that lets a plain `git push` carry the shadow ref past the guard's intent. */
+async function reportPushSafety(deps: DoctorDeps): Promise<void> {
+  const { git, reporter } = deps;
+  if (!git) return;
+  if ((await git.getConfig("push.default")) === "matching") {
+    reporter.line(
+      "  [warn] push.default=matching — a plain `git push` can carry the trace ref; prefer 'simple' (the guard still blocks it)",
+    );
   }
 }
 

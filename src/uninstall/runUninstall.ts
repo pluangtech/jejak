@@ -3,13 +3,14 @@ import { join } from "node:path";
 import type { Reporter } from "../app/AppDeps.js";
 import { InitError } from "../errors.js";
 import type { GitClient } from "../git/GitClient.js";
+import { PRE_PUSH_MARKER } from "../git/pushGuard.js";
 import { localPaths } from "../localstate/paths.js";
 import type { Prompter } from "../prompt/Prompter.js";
+import { resolveHooksDir } from "../setup/hooksDir.js";
 import { type ClaudeSettings, removeJejakHooks } from "../setup/settingsMerge.js";
 
 const SETTINGS_PATH = ".claude/settings.json";
-const GIT_HOOK_PATH = ".git/hooks/prepare-commit-msg";
-const GIT_HOOK_MARKER = "_hook prepare-commit-msg";
+const PREPARE_COMMIT_MARKER = "_hook prepare-commit-msg";
 
 export interface UninstallFlags {
   purge?: boolean;
@@ -37,9 +38,13 @@ export async function runUninstall(flags: UninstallFlags, deps: UninstallDeps): 
   }
 
   const r = deps.reporter;
+  const hooksDir = await resolveHooksDir(deps.git, repoRoot);
   r.line("jejak: uninstalling");
   r.line(`  agent hooks: ${removeAgentHooks(repoRoot)}`);
-  r.line(`  git hook:    ${removeGitHook(repoRoot)}`);
+  r.line(
+    `  git hook:    ${removeManagedHook(hooksDir, "prepare-commit-msg", PREPARE_COMMIT_MARKER)}`,
+  );
+  r.line(`  push guard:  ${removeManagedHook(hooksDir, "pre-push", PRE_PUSH_MARKER)}`);
 
   if (flags.purge) {
     const dir = localPaths(repoRoot, deps.home).dir;
@@ -79,13 +84,13 @@ function removeAgentHooks(repoRoot: string): string {
   return "removed from .claude/settings.json (foreign hooks preserved)";
 }
 
-/** Delete the git hook only if it carries jejak's marker; returns a human status line. */
-function removeGitHook(repoRoot: string): string {
-  const path = join(repoRoot, GIT_HOOK_PATH);
+/** Delete a managed git hook only if it carries jejak's marker; returns a human status line. */
+function removeManagedHook(hooksDir: string, name: string, marker: string): string {
+  const path = join(hooksDir, name);
   if (!existsSync(path)) return "not found";
-  if (!readFileSync(path, "utf8").includes(GIT_HOOK_MARKER)) {
+  if (!readFileSync(path, "utf8").includes(marker)) {
     return "left untouched (foreign hook)";
   }
   unlinkSync(path);
-  return "removed .git/hooks/prepare-commit-msg";
+  return `removed ${name}`;
 }

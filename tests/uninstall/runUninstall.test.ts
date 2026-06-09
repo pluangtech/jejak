@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { renderPrePushGuard } from "../../src/git/pushGuard.js";
 import { localPaths } from "../../src/localstate/paths.js";
 import { removeJejakHooks } from "../../src/setup/settingsMerge.js";
 import { runUninstall } from "../../src/uninstall/runUninstall.js";
@@ -74,6 +75,7 @@ describe("runUninstall", () => {
       join(dir, ".git/hooks/prepare-commit-msg"),
       'exec npx jejak _hook prepare-commit-msg "$@"',
     );
+    writeFileSync(join(dir, ".git/hooks/pre-push"), renderPrePushGuard());
 
     const d = deps();
     await runUninstall({}, d);
@@ -83,15 +85,19 @@ describe("runUninstall", () => {
       { matcher: "", hooks: [{ type: "command", command: "keep-me" }] },
     ]);
     expect(existsSync(join(dir, ".git/hooks/prepare-commit-msg"))).toBe(false);
+    expect(existsSync(join(dir, ".git/hooks/pre-push"))).toBe(false); // guard removed too
   });
 
   it("leaves a foreign git hook untouched", async () => {
     mkdirSync(join(dir, ".git/hooks"), { recursive: true });
     const hook = join(dir, ".git/hooks/prepare-commit-msg");
     writeFileSync(hook, "#!/bin/sh\necho not jejak");
+    const prePush = join(dir, ".git/hooks/pre-push");
+    writeFileSync(prePush, "#!/bin/sh\necho my own guard");
     await runUninstall({}, deps());
     expect(existsSync(hook)).toBe(true);
     expect(readFileSync(hook, "utf8")).toContain("not jejak");
+    expect(readFileSync(prePush, "utf8")).toContain("my own guard"); // foreign pre-push preserved
   });
 
   it("--purge removes local state when confirmed, keeps it when declined", async () => {
