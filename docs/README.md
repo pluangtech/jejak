@@ -12,5 +12,7 @@
 | [REVIEW-LLD.md](REVIEW-LLD.md) | Architect review v1 (incorporated) |
 | [REVIEW-LLD-v2.md](REVIEW-LLD-v2.md) | Architect review v2 — Entire comparison (incorporated) |
 | [REVIEW-LLD-v3.md](REVIEW-LLD-v3.md) | Architect review v3 — final cleanups (incorporated) |
+| [research/observability-standards-and-jejak.md](research/observability-standards-and-jejak.md) | **Research note** — OpenTelemetry / Langfuse vs. jejak's capture model (exploratory) |
+| [research/otel-langfuse-interop-requirements.md](research/otel-langfuse-interop-requirements.md) | **Requirements / RFC** — OTel/Langfuse interop proposal (draft, for review) |
 
 Project overview and install sketch: [../README.md](../README.md).
