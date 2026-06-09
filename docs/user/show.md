@@ -16,7 +16,7 @@ session 2026-05-31-abcd1234  ·  captured  ·  42 events  ·  12 turns  ·  $0.8
 ```
 
 Large content (long tool results, big files) is **offloaded** to content-addressed blobs and shown
-as a preview plus a `<sha… N bytes>` reference. Pass `--expand` to resolve those references and
+as a `<sha… N bytes>` reference, with a short preview when one is available. Pass `--expand` to resolve those references and
 print the full content inline.
 
 ## Flags

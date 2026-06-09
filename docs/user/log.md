@@ -12,7 +12,8 @@ SESSION              STATUS                STARTED           TURNS  IN     OUT  
 
 By default `log` shows **your** sessions (resolved from your git/jejak handle). Pass `--all` to
 list every developer's sessions on the ref. `CACHE` is the sum of cache-write and cache-read
-tokens; `COST` is re-derivable from the raw token counts, so it updates if pricing changes.
+tokens; `COST` is the model's price applied to those tokens at capture time, stored with the
+session (it does not change if pricing later changes).
 
 ## Flags
 
