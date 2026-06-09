@@ -3,8 +3,9 @@
 Add jejak to the current git repository: detect the coding agent, record the choice, and create
 the [shadow branch](concepts/shadow-branch.md) that holds captured traces.
 
-`init` is **safe to re-run** — it never edits your tracked files, never makes a normal commit, and
-leaves your working tree clean. Running it again on an already-initialised repo is a no-op.
+`init` is **safe to re-run** — it never edits files you already have and never makes a normal
+commit. The one working-tree file it adds is `.jejakignore` (written once, then left alone).
+Running it again on an already-initialised repo is a no-op.
 
 ## Usage
 
@@ -25,6 +26,9 @@ and writes `.jejak/config.json` (which you commit).
 4. **Creates the shadow branch** `refs/heads/jejak/sessions/v1` — an orphan ref, so nothing in your
    working tree or normal history changes. See [shadow-branch.md](concepts/shadow-branch.md).
 5. **Writes `.jejak/config.json`** `{ v, agent, mode }` for you to commit.
+6. **Writes `.jejakignore`** (if absent) — trace-content exclusions (`.env`, `*.key`, …) that keep
+   matching file contents out of captured traces. Written once, never clobbered; commit it so the
+   exclusions apply for the whole team.
 
 ## Options
 

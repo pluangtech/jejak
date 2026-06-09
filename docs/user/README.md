@@ -36,8 +36,9 @@ $ jejak init
 ```
 
 `init` detects which agent your repo uses (e.g. Claude Code), records the choice in a committed
-`.jejak/config.json`, and creates the **shadow branch** where traces are stored. It never edits
-your files or commits. See [`concepts/shadow-branch.md`](concepts/shadow-branch.md) for what that
+`.jejak/config.json`, writes a `.jejakignore` (trace-content exclusions, also committed), and
+creates the **shadow branch** where traces are stored. It never edits files you already have or
+makes a normal commit. See [`concepts/shadow-branch.md`](concepts/shadow-branch.md) for what that
 branch is and why it exists. Full flag reference: [`init.md`](init.md).
 
 ### Step 2 — Wire up capture
