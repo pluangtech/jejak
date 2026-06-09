@@ -18,6 +18,10 @@ publishing a trace whose custom redaction rules aren't in effect. The built-in s
 always apply; this gate only triggers on a broken custom config. Fix or remove the file and retry.
 See [How capture works](concepts/capture.md) for what gets redacted.
 
+`jejak push` is the **only** path traces should leave your machine on. A plain `git push` — even
+`git push --all` or `--mirror` — is blocked by the [push guard](concepts/shadow-branch.md#kept-off-accidental-pushes)
+so the shadow branch can't be published past this gate by accident.
+
 ## See also
 
 - [`jejak fetch`](fetch.md) · [`jejak status`](status.md) · [Sharing traces](concepts/sharing.md)

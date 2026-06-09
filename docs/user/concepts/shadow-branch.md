@@ -1,6 +1,6 @@
 ---
 concept: shadow-branch
-sources_hash: sha256:3d361719856b4ce5ab67dd1ff9d2a5813c1dd45b81dfcd1d98cd0e7ee6cbd512
+sources_hash: sha256:126583714264d3ec57410c1727b190d8163636086980fb4cb27e78f154cbfb4c
 ---
 
 # The shadow branch
@@ -56,6 +56,28 @@ $ git cat-file -p refs/heads/jejak/sessions/v1:.gitattributes
 ```
 
 `jejak init` is idempotent — if the shadow branch already exists, re-running leaves it untouched.
+
+## Kept off accidental pushes
+
+Because the shadow branch lives under `refs/heads/`, git treats it like any other branch — which
+means a sweeping push (`git push --all`, `git push --mirror`, or the legacy `push.default=matching`)
+would otherwise carry it to a remote, slipping past the [privacy gate](sharing.md#the-privacy-gate)
+that [`jejak push`](../push.md) enforces.
+
+To prevent that, [`jejak setup`](../setup.md) installs a `pre-push` git hook that **refuses any push
+which would publish the shadow branch**, unless that push came from `jejak push` itself. The hook is
+plain bash with no dependency on jejak, so it keeps working even if the CLI is missing, and a normal
+code push (one that doesn't touch the shadow branch) passes straight through.
+
+`jejak push` carries a one-shot handshake (the `JEJAK_INTERNAL_PUSH` environment variable) that the
+hook recognizes, so the gated path works while accidental pushes don't. If you ever need to publish
+the branch by hand on purpose, set the same variable yourself:
+
+```console
+$ JEJAK_INTERNAL_PUSH=1 git push origin refs/heads/jejak/sessions/v1
+```
+
+`jejak doctor` reports whether the guard is installed, and warns if `push.default=matching`.
 
 ## Further reading
 

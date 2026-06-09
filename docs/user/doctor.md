@@ -6,7 +6,8 @@ Diagnose this repo's jejak health — setup, sync, and capture.
 $ jejak doctor
 jejak doctor — setup checks:
   [ok] agent hooks in .claude/settings.json
-  [ok] git hook .git/hooks/prepare-commit-msg
+  [ok] git hook prepare-commit-msg
+  [ok] pre-push shadow guard (accidental-push protection)
   [ok] session ledger present
   [ok] PII catalog ready (push gate)
   [info] .jejak/disabled: absent
@@ -15,8 +16,13 @@ jejak doctor — setup checks:
 ```
 
 It reports:
-- **Setup checks** — agent hooks, git hook, ledger, and the PII catalog (the `push` gate).
+- **Setup checks** — agent hooks, the `prepare-commit-msg` git hook, the
+  [`pre-push` shadow guard](concepts/shadow-branch.md#kept-off-accidental-pushes), the ledger, and
+  the PII catalog (the `push` gate). A missing guard is flagged with a `run jejak setup` hint, since
+  it means the shadow branch isn't protected from an accidental `git push`.
 - **Shadow sync** — local vs `origin` ahead/behind (or "not pushed yet").
+- **Push safety** — warns if `push.default=matching`, a legacy git config under which a plain
+  `git push` can carry the shadow branch (the guard still blocks it; `simple` is preferred).
 - **Stale sessions** — sessions still `open` with no recent transcript activity (>1h) → an `attach` hint.
 - **Orphan locks / staging** — leftovers from a crashed capture, safe to discard.
 - **Filesystem warnings** — repos under iCloud/Dropbox/Google Drive/NFS, where sync services can

@@ -12,10 +12,17 @@ $ jejak setup --claude-code
 - **Agent hooks** — adds jejak's `SessionStart` / `Stop` / `SessionEnd` hooks to
   `.claude/settings.json`. The merge is **additive**: any hooks you already have are kept, and
   re-running changes nothing (idempotent).
-- **Git hook** — installs `.git/hooks/prepare-commit-msg`, which stamps a `Jejak-Session:`
+- **Git hook** — installs `prepare-commit-msg`, which stamps a `Jejak-Session:`
   trailer onto each commit you make while a session is open (so a commit can be traced back to
   the work that produced it). If you already have a `prepare-commit-msg` hook, jejak leaves it
   untouched and tells you to wire it in manually.
+- **Push guard** — installs a `pre-push` hook that stops a plain `git push` from publishing the
+  [shadow branch](concepts/shadow-branch.md) by accident (including `git push --all` and
+  `--mirror`). Traces should only leave your machine through [`jejak push`](push.md), which
+  enforces the [privacy gate](concepts/sharing.md#the-privacy-gate). A foreign `pre-push` hook is
+  left untouched. See [Keeping the shadow branch off accidental pushes](concepts/shadow-branch.md#kept-off-accidental-pushes).
+
+Both git hooks honor `core.hooksPath`, so they install correctly under husky-style setups.
 
 It does **not** create the [shadow branch](concepts/shadow-branch.md) — that's `jejak init`'s job.
 

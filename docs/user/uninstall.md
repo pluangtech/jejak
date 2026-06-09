@@ -8,13 +8,15 @@ traces on the [shadow branch](concepts/shadow-branch.md) are **left untouched**,
 $ jejak uninstall
 jejak: uninstalling
   agent hooks: removed from .claude/settings.json (foreign hooks preserved)
-  git hook:    removed .git/hooks/prepare-commit-msg
+  git hook:    removed prepare-commit-msg
+  push guard:  removed pre-push
   shadow ref: preserved (re-run `jejak setup` to restore hooks)
 ```
 
 What it does:
 - Removes only **jejak's** entries from `.claude/settings.json` (any hooks you added yourself stay).
-- Deletes `.git/hooks/prepare-commit-msg` **only if it's jejak's** — a foreign hook is left alone.
+- Deletes the `prepare-commit-msg` git hook and the `pre-push` [push guard](concepts/shadow-branch.md#kept-off-accidental-pushes)
+  **only if they're jejak's** — a foreign hook is left alone.
 - The shadow ref and your captured sessions are never deleted by a plain uninstall.
 
 ## `--purge`

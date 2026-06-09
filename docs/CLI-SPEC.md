@@ -187,8 +187,11 @@ v0.1: no bare `jejak setup` — exit **2** with hint to pass `--claude-code`.
 **Behavior:** resolve the CLI invocation from `config.mode` (`npx jejak` in project mode, the
 resolved absolute path in global mode); **additively merge** jejak's `SessionStart`/`Stop`/
 `SessionEnd` hooks into `.claude/settings.json` (idempotent; **never clobbers** foreign hooks);
-install the `prepare-commit-msg` git hook (leaves a foreign one untouched with a warning);
-self-setup refusal; does **not** create the shadow ref.
+install the `prepare-commit-msg` git hook and the `pre-push` **shadow-ref guard** (the guard
+refuses an accidental `git push` of the shadow ref — incl. `--all`/`--mirror` — unless the push
+carries the `JEJAK_INTERNAL_PUSH` handshake set by `jejak push`; each leaves a foreign hook
+untouched with a warning); both git hooks honor `core.hooksPath`; self-setup refusal; does **not**
+create the shadow ref.
 
 **Mismatch:** `config.agent` ≠ `--claude-code` → exit **1**. Not initialized → exit **1**. Bare (no agent flag) → exit **2**.
 

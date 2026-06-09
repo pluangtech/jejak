@@ -22,7 +22,8 @@
       "sources": [
         "src/shadow/ShadowRepository.ts",
         "src/shadow/constants.ts",
-        "src/shadow/sessionPath.ts"
+        "src/shadow/sessionPath.ts",
+        "src/git/pushGuard.ts"
       ]
     },
     {
